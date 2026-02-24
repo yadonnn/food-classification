@@ -7,6 +7,12 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from tqdm import tqdm
 
+# --- 경로 설정 ---
+TARGET_SIZE = 384
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_DIR = os.path.join(BASE_DIR, "data", "extracted")
+DST_DIR = os.path.join(BASE_DIR, "data", f"resized_{TARGET_SIZE}_webp")
+
 def get_dir_size_bytes(path):
     """폴더의 전체 용량을 Byte 단위로 계산 (정밀도 유지)"""
     total = 0
@@ -20,7 +26,31 @@ def get_dir_size_bytes(path):
         pass
     return total
 
-def resize_with_padding(image_path, src_root, dst_root, target_size=384):
+def print_summary_report(start_time, end_time, processed_count, dst_root, skipped_count=None):
+    duration = end_time - start_time
+    final_size_bytes = get_dir_size_bytes(dst_root)
+    final_size_gb = final_size_bytes / (1024 ** 3)
+    final_size_mb = final_size_bytes / (1024 ** 2)
+    avg_speed = processed_count / duration if duration > 0 else 0
+    avg_size_kb = (final_size_bytes / processed_count) / 1024 if processed_count > 0 else 0
+
+    print("\n" + "="*50)
+    print("📋 [작업 완료 요약 리포트]")
+    print("="*50)
+    print(f"✅ 총 처리 이미지: {processed_count:,} 장")
+    if skipped_count is not None:
+        print(f"⏭️ 스킵 이미지: {skipped_count:,} 장")
+    print(f"📦 전체 저장 용량: {final_size_gb:.2f} GB ({final_size_mb:.2f} MB)")
+    print(f"🖼️ 장당 평균 용량: {avg_size_kb:.2f} KB")
+    print(f"⏱️ 총 소요 시간  : {duration/60:.1f} 분")
+    print(f"⚡ 평균 처리 속도: {avg_speed:.2f} img/s")
+    print("="*50)
+
+
+def resize_with_padding(image_path: Path,
+                        src_root: str = SRC_DIR,
+                        dst_root: str = DST_DIR,
+                        target_size: int = TARGET_SIZE):
     """이미지 리사이징 및 저장 핵심 로직"""
     try:
         img = cv2.imread(str(image_path))
@@ -35,7 +65,7 @@ def resize_with_padding(image_path, src_root, dst_root, target_size=384):
         canvas[(target_size-new_h)//2:(target_size-new_h)//2+new_h, 
                (target_size-new_w)//2:(target_size-new_w)//2+new_w] = resized
         
-        relative_path = image_path.relative_to(src_root)
+        relative_path = image_path.relative_to(Path(src_root))
         save_path = Path(dst_root) / relative_path.with_suffix('.webp')
         save_path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -45,9 +75,12 @@ def resize_with_padding(image_path, src_root, dst_root, target_size=384):
         return None
 
 
-def transform_consumer(queue, src_root='data/extracted', dst_root='data/resized_384_webp', target_size=384):
-    src_root_path = Path(src_root)
+def transform_consumer(queue,
+                       src_root: str = SRC_DIR,
+                       dst_root: str = DST_DIR,
+                       target_size: int = TARGET_SIZE):
     os.makedirs(dst_root, exist_ok=True)
+    src_root_path = Path(src_root)
 
     processed = 0
     skipped = 0
@@ -68,7 +101,10 @@ def transform_consumer(queue, src_root='data/extracted', dst_root='data/resized_
             skipped += 1
             continue
 
-        result = resize_with_padding(image_path, src_root_path, dst_root, target_size=target_size)
+        result = resize_with_padding(image_path,
+                                     src_root_path,
+                                     dst_root,
+                                     target_size=target_size)
         if result is None:
             skipped += 1
             continue
@@ -78,29 +114,11 @@ def transform_consumer(queue, src_root='data/extracted', dst_root='data/resized_
             print(f"🧩 transform 진행: {processed}장")
 
     end_time = time.time()
-    duration = end_time - start_time
-    final_size_bytes = get_dir_size_bytes(dst_root)
-    final_size_gb = final_size_bytes / (1024 ** 3)
-    final_size_mb = final_size_bytes / (1024 ** 2)
-    avg_speed = processed / duration if duration > 0 else 0
-    avg_size_kb = (final_size_bytes / processed) / 1024 if processed > 0 else 0
+    print_summary_report(start_time, end_time, processed, dst_root, skipped_count=skipped)
 
-    print("\n" + "="*50)
-    print("📋 [실시간 변환 완료 요약 리포트]")
-    print("="*50)
-    print(f"✅ 총 처리 이미지: {processed:,} 장")
-    print(f"⏭️ 스킵 이미지: {skipped:,} 장")
-    print(f"📦 전체 저장 용량: {final_size_gb:.2f} GB ({final_size_mb:.2f} MB)")
-    print(f"🖼️ 장당 평균 용량: {avg_size_kb:.2f} KB")
-    print(f"⏱️ 총 소요 시간  : {duration/60:.1f} 분")
-    print(f"⚡ 평균 처리 속도: {avg_speed:.2f} img/s")
-    print("="*50)
-
-def run_transform():
-    SRC = 'data/extracted'
-    DST = 'data/resized_384_webp'
+def run_transform(src_root: str = SRC_DIR, dst_root: str = DST_DIR):
     
-    files = sorted([f for f in Path(SRC).rglob('*') if f.suffix.lower() in ('.jpg', '.png', '.webp')])
+    files = sorted([f for f in Path(src_root).rglob('*') if f.suffix.lower() in ('.jpg', '.png', '.webp')])
     total_files = len(files)
     
     start_time = time.time() # 시작 시간 기록
@@ -110,7 +128,7 @@ def run_transform():
     current_class = ""
     
     with ProcessPoolExecutor() as executor:
-        func = partial(resize_with_padding, src_root=Path(SRC), dst_root=DST)
+        func = partial(resize_with_padding, src_root=src_root, dst_root=dst_root)
         for res in executor.map(func, files):
             if res:
                 pbar.set_postfix(class_name=res.parent.name)
@@ -119,28 +137,8 @@ def run_transform():
     pbar.close()
     end_time = time.time() # 종료 시간 기록
 
-    # --- 📊 최종 리포트 계산 ---
-    print("\n" + "="*50)
-    print("📋 [작업 완료 요약 리포트]")
-    print("="*50)
-    
-    # 1. 용량 계산
-    final_size_bytes = get_dir_size_bytes(DST)
-    final_size_gb = final_size_bytes / (1024 ** 3)
-    final_size_mb = final_size_bytes / (1024 ** 2)
-    
-    # 2. 통계 계산
-    duration = end_time - start_time
-    avg_speed = total_files / duration if duration > 0 else 0
-    avg_size_kb = (final_size_bytes / total_files) / 1024 if total_files > 0 else 0
-
-    # 3. 출력
-    print(f"✅ 총 처리 이미지: {total_files:,} 장")
-    print(f"📦 전체 저장 용량: {final_size_gb:.2f} GB ({final_size_mb:.2f} MB)")
-    print(f"🖼️ 장당 평균 용량: {avg_size_kb:.2f} KB")
-    print(f"⏱️ 총 소요 시간  : {duration/60:.1f} 분")
-    print(f"⚡ 평균 처리 속도: {avg_speed:.2f} img/s")
-    print("="*50)
+    # --- 📊 최종 리포트 계산 및 출력 ---
+    print_summary_report(start_time, end_time, total_files, dst_root)
 
 if __name__ == "__main__":
     run_transform()
