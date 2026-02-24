@@ -1,0 +1,60 @@
+# 병렬 처리 파이프라인 명세서
+
+## 목표
+[main.py](file:///home/lee/food-classification/downloader/main.py)에 생산자-소비자(Producer-Consumer) 패턴의 파이프라인을 구현하여 다운로드, 압축 해제, 이미지 처리를 동시에 수행합니다. 이를 통해 대기 시간을 최소화하고 전체 작업 속도를 가속화합니다.
+
+## 제안하는 아키텍처
+
+각 단계 사이에 `multiprocessing.Queue`를 사용하여 데이터를 전달하는 다단계 파이프라인입니다.
+
+```mermaid
+graph LR
+    A[aihub_downloader] -->|Zip 경로| Q1[압축파일 큐]
+    Q1 --> B[Extractor]
+    B -->|압축해제 폴더| Q2[폴더 큐]
+    Q2 --> C[image_transformer]
+    C -->|리사이징 경로| Q3[업로드 큐]
+    Q3 --> D[bucket_uploader]
+```
+
+### 주요 구성 요소
+
+#### 1. [수정] [aihub_downloader.py](file:///home/lee/food-classification/downloader/aihub_downloader.py)
+- [run_download](file:///home/lee/food-classification/downloader/aihub_downloader.py#37-57)를 워커 형태로 리팩토링합니다. `aihubshell`은 다운로드 파일명을 직접 지정할 수 없으므로, **다운로드 전후의 `data/raw` 폴더 내 파일 목록을 비교(diff)**하여 새로 생성된 ZIP 파일의 절대경로를 찾아냅니다.
+- **용량 제어 (Backpressure):** `zip_queue`의 `maxsize` 설정을 통해 다운로드된 ZIP 파일이 디스크에 과도하게 쌓이는 것(최대 2개 유지 등)을 방지합니다. 큐가 꽉 차면 다운로드를 일시 중단합니다.
+
+#### 2. [신규] 압축 해제 로직 (Extractor)
+- `zip_queue`를 모니터링하며, 파일을 `data/extracted` 경로(고유 폴더명)에 압축 해제합니다.
+- **[중요] 삭제 로직 1:** 압축 해제가 완전히 끝나면 **원본 ZIP 코어 파일(`data/raw/*.zip`)을 즉시 삭제**하여 스토리지 공간을 확보합니다.
+- 해제된 디렉토리 경로를 `folder_queue`에 넣습니다.
+
+#### 3. [수정] [image_transformer.py](file:///home/lee/food-classification/downloader/image_transformer.py)
+- [transform_consumer](file:///home/lee/food-classification/downloader/image_transformer.py#78-118)가 폴더(`folder_queue`) 단위로 작업을 인계받습니다.
+- **[중요] 리소스 제한:** 현재 서버 환경(vCPU 4, 메모리 16GB)에서 병목 현상을 최소화하기 위해 내부 프로세스 풀(`ProcessPoolExecutor`)의 `max_workers`를 제한(예: 1~2개)하여 전체 파이프라인이 멈추지 않고 점진적으로 진행되도록 조정합니다.
+- **[중요] 삭제 로직 2:** 해당 폴더의 모든 이미지가 리사이징되어 `data/resized_..._webp`에 저장(`upload_queue` 적재 완료)되면, **원본 해제 폴더(`data/extracted/...`)를 디스크에서 즉시 통째로 삭제(rmtree)**합니다.
+
+#### 4. [신규] [bucket_uploader.py](file:///home/lee/food-classification/downloader/bucket_uploader.py)
+- `upload_consumer(upload_queue)`를 구현합니다.
+- 대상 버킷(예: S3 또는 GCS)으로의 업로드를 처리합니다.
+
+#### 5. [수정] [main.py](file:///home/lee/food-classification/downloader/main.py)
+- 모든 큐와 프로세스를 초기화합니다.
+- "Poison Pill"(`None` 전송)을 구현하여 워커들을 안전하게 종료합니다.
+
+## 사용자 검토 필요 사항
+> [!IMPORTANT]
+> `image_transformer`는 현재 내부적으로 `ProcessPoolExecutor`를 사용하고 있습니다. 이를 파이프라인의 별도 프로세스로 실행하면 중첩된 멀티프로세싱(Nested Multiprocessing)이 발생합니다. CPU 자원 고갈을 방지하기 위해 워커 수의 균형을 맞추는 것이 중요합니다.
+
+> [!NOTE]
+> `aihubshell`은 특정 디렉토리에 파일을 다운로드합니다. 출력 파일명을 직접 지정할 수 있는지, 아니면 새로 생성된 파일을 검색해서 찾아야 하는지 확인이 필요합니다.
+
+## 검증 계획
+
+### 자동화 테스트
+- `aihubshell`을 모킹(Mock)하여 빠른 다운로드를 시뮬레이션합니다.
+- 이미지가 몇 장 들어있는 소규모 테스트용 ZIP 파일들을 사용합니다.
+- 전체 흐름을 검증하기 위해 `python main.py --test`(구현 예정)를 실행합니다.
+
+### 수동 검증
+- `data/raw`, `data/extracted`, `data/resized_...` 디렉토리가 순차적으로 채워지는지 모니터링합니다.
+- 터미널 로그를 통해 각 단계별 진행 상황을 확인합니다.
