@@ -1,17 +1,16 @@
 import subprocess
 import os
-import zipfile
+import glob
 from datetime import datetime
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # 1. 경로 설정 및 API 키 로드
 api_key = os.getenv("AIHUB_API_KEY")
 DOWNLOAD_DIR = "data/raw/"
-EXTRACT_DIR = "extracted/"
 LOG_DIR = "logs/"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-os.makedirs(EXTRACT_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 LOG_PATH = os.path.join(LOG_DIR, "download_error.log")
 
@@ -27,33 +26,40 @@ def log_download_error(file_key, error):
     with open(LOG_PATH, "a", encoding="utf-8") as log_file:
         log_file.write(f"[{timestamp}] file_key={file_key} error={error}\n")
 
-# 압축해제
-def unzip_file(zip_path):
-	try:
-		with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-			zip_ref.extractall(EXTRACT_DIR)
-		return True
-	except Exception as e:
-		print(f"❌ 압축 해제 실패: {e}")
-		return False
+def get_zip_files():
+    search_pattern = os.path.join(os.path.abspath(DOWNLOAD_DIR), "**", "*.zip")
+    return set(glob.glob(search_pattern, recursive=True))
 
-zip_path = "raw/052.건강관리를_위한_음식_이미지_데이터/01.데이터/2.Validation/원천데이터/음식001_Val.zip"
-
-def run_download():
+def download_worker(zip_queue):
+    """
+    다운로더 워커 함수:
+    aihubshell로 파일을 다운로드하고, 새로 다운로드된 ZIP 파일 경로를 zip_queue에 넣습니다.
+    (Backpressure는 zip_queue.put()의 기본 blocking 성질과 큐의 maxsize에 의해 제어됨)
+    """
     for key in AIHUB_FILE_KEYS:
         print(f"📦 파일 키 {key} 다운로드 시도 중...")
         
-        # 실행할 명령어 (리스트 형태 권장)
+        before_files = get_zip_files()
         command = f"aihubshell -mode d -datasetkey {AIHUB_PROJECT_KEY} -filekey {key} -aihubapikey {api_key}"
         
         try:
-            # cwd 인자를 사용하여 해당 경로로 'cd' 한 뒤 명령어를 실행한 효과를 냄
-            subprocess.run(command, cwd=DOWNLOAD_DIR, check=True)
+            subprocess.run(command, cwd=DOWNLOAD_DIR, shell=True, check=True)
             print(f"✅ 파일 키 {key} 완료!")
             
+            after_files = get_zip_files()
+            new_files = after_files - before_files
+            
+            if new_files:
+                for new_zip in new_files:
+                    print(f"새로 다운로드된 파일 큐에 추가: {new_zip}")
+                    zip_queue.put(new_zip)
+            else:
+                print(f"⚠️ 파일 키 {key} 완료. 새 ZIP 파일 발견 안됨.")
+                
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
             print(f"❌ 파일 키 {key} 실패: {e}")
             log_download_error(key, e)
-		
-if __name__ == "__main__":
-    run_download()
+
+    # Poison pill for Extractor
+    zip_queue.put(None)
+    print("다운로더 워커 종료 신호 전송")
