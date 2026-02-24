@@ -6,6 +6,7 @@ from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from tqdm import tqdm
+from logger import setup_logger
 
 def get_dir_size_bytes(path):
     """폴더의 전체 용량을 Byte 단위로 계산 (정밀도 유지)"""
@@ -47,21 +48,23 @@ def resize_with_padding(image_path, src_root, dst_root, target_size=384):
 
 def transform_worker(folder_queue, upload_queue, src_root='data/extracted', dst_root='data/resized_384_webp', target_size=384):
     import shutil
+    logger = setup_logger()
     src_root_path = Path(src_root).resolve()
     os.makedirs(dst_root, exist_ok=True)
     
     # 리소스 제한 (CPU 병목 방지를 위해 max_workers를 2명 정도로 제한)
-    executor = ProcessPoolExecutor(max_workers=2)
+    executor = ProcessPoolExecutor(max_workers=3)
     
     while True:
-        folder_item = folder_queue.get()
-        if folder_item is None:
+        item = folder_queue.get()
+        if item is None:
             print("이미지 변환 워커: 종료 신호 수신")
             upload_queue.put(None)
             break
+        folder_item, file_key = item
             
         folder_path = Path(folder_item).resolve()
-        print(f"🔄 이미지 변환 시작: {folder_path}")
+        print(f"🔄 이미지 변환 시작: {folder_path} (filekey: {file_key})")
         
         if not folder_path.exists() or not folder_path.is_dir():
             print(f"⚠️ 폴더가 존재하지 않거나 디렉토리가 아닙니다: {folder_path}")
@@ -92,12 +95,18 @@ def transform_worker(folder_queue, upload_queue, src_root='data/extracted', dst_
                 
         print(f"✅ 이미지 변환 완료 ({processed_count}/{len(files)}장): {folder_path}")
         
-        # [중요] 삭제 로직 2: 리사이징 및 업로드 큐 적재가 끝나면 원본 해제 폴더 삭제
-        try:
-            shutil.rmtree(folder_path)
-            print(f"🗑️ 원본 해제 폴더 삭제 완료: {folder_path}")
-        except Exception as e:
-            print(f"❌ 원본 폴더 삭제 실패: {folder_path} ({e})")
+        if processed_count != len(files):
+            logger.error(f"❌ 무결성 검증 실패 (이미지 변환): 원본 {len(files)}장 != 변환 {processed_count}장 (filekey: {file_key}, folder: {folder_path})")
+            print(f"❌ 무결성 검증 실패로 인해 원본 해제 폴더를 삭제하지 않습니다: {folder_path}")
+        else:
+            logger.info(f"✅ 무결성 검증 통과 (이미지 변환): 총 {processed_count}장 일치")
+            
+            # [중요] 삭제 로직 2: 리사이징 및 업로드 큐 적재가 정상 종료되면 원본 해제 폴더 삭제
+            try:
+                shutil.rmtree(folder_path)
+                print(f"🗑️ 원본 해제 폴더 삭제 완료: {folder_path}")
+            except Exception as e:
+                print(f"❌ 원본 폴더 삭제 실패: {folder_path} ({e})")
             
     executor.shutdown(wait=True)
 

@@ -1,0 +1,36 @@
+2026-02-24 16:41:53,470 - INFO - 📦 압축 해제 시작: /home/lee/food-classification/downloader/data/raw/test_data_49602.zip (filekey: 49602)
+2026-02-24 16:41:53,471 - INFO - 총 6개의 항목 확인: /home/lee/food-classification/downloader/data/raw/test_data_49602.zip
+2026-02-24 16:41:53,484 - INFO - 클래스 카운팅 완료. 대상 폴더로 압축 해제를 진행합니다.
+2026-02-24 16:41:53,484 - INFO - ✅ 무결성 검증 통과 (압축 해제): 총 6개 파일 일치
+2026-02-24 16:41:53,484 - INFO - ✅ '/home/lee/food-classification/downloader/data/extracted/test_data_49602' (으)로 압축 해제 완료!
+2026-02-24 16:41:53,485 - INFO - 최종 클래스별 이미지/파일 개수: {'sample_folder': 6}
+2026-02-24 16:41:53,485 - INFO - 🗑️ 원본 ZIP 삭제 완료: /home/lee/food-classification/downloader/data/raw/test_data_49602.zip
+2026-02-24 16:41:53,485 - INFO - 압축 해제 워커: 종료 신호 수신
+2026-02-24 16:41:53,722 - INFO - ✅ 무결성 검증 통과 (이미지 변환): 총 5장 일치
+2026-02-24 16:51:46,142 - INFO - 📦 압축 해제 시작: /home/lee/food-classification/downloader/data/raw/test_data_49602.zip (filekey: 49602)
+2026-02-24 16:51:46,143 - INFO - 총 6개의 항목 확인: /home/lee/food-classification/downloader/data/raw/test_data_49602.zip
+2026-02-24 16:51:46,144 - INFO - 클래스 카운팅 완료. 대상 폴더로 압축 해제를 진행합니다.
+2026-02-24 16:51:46,145 - INFO - ✅ 무결성 검증 통과 (압축 해제): 총 6개 파일 일치
+2026-02-24 16:51:46,145 - INFO - ✅ '/home/lee/food-classification/downloader/data/extracted/test_data_49602' (으)로 압축 해제 프로세스 완료!
+2026-02-24 16:51:46,145 - INFO - 최종 클래스별 이미지/파일 개수: {'sample_folder': 6}
+2026-02-24 16:51:46,145 - INFO - 🗑️ 원본 ZIP 삭제 완료: /home/lee/food-classification/downloader/data/raw/test_data_49602.zip
+2026-02-24 16:51:46,146 - INFO - 압축 해제 워커: 종료 신호 수신
+2026-02-24 16:51:46,304 - INFO - ✅ 무결성 검증 통과 (이미지 변환): 총 5장 일치
+2026-02-24 17:41:05,446 - INFO - 📦 압축 해제 시작: /home/lee/food-classification/downloader/data/raw/test_data_49520.zip (filekey: 49520)
+2026-02-24 17:41:05,447 - INFO - 총 6개의 항목 확인: /home/lee/food-classification/downloader/data/raw/test_data_49520.zip
+2026-02-24 17:41:05,448 - INFO - 클래스 카운팅 완료. 대상 폴더로 압축 해제를 진행합니다.
+2026-02-24 17:41:05,448 - INFO - ✅ 무결성 검증 통과 (압축 해제): 총 6개 파일 일치
+2026-02-24 17:41:05,448 - INFO - ✅ '/home/lee/food-classification/downloader/data/extracted/test_data_49520' (으)로 압축 해제 프로세스 완료!
+2026-02-24 17:41:05,448 - INFO - 최종 클래스별 이미지/파일 개수: {'sample_folder': 6}
+2026-02-24 17:41:05,448 - INFO - 🗑️ 원본 ZIP 삭제 완료: /home/lee/food-classification/downloader/data/raw/test_data_49520.zip
+2026-02-24 17:41:05,449 - INFO - 압축 해제 워커: 종료 신호 수신
+2026-02-24 17:41:05,657 - INFO - ✅ 무결성 검증 통과 (이미지 변환): 총 5장 일치
+2026-02-24 19:04:16,092 - INFO - 📦 압축 해제 시작: /home/lee/food-classification/downloader/data/raw/052.건강관리를_위한_음식_이미지_데이터/01.데이터/2.Validation/원천데이터/음식104_Val.zip (filekey: 49520)
+2026-02-24 19:04:16,323 - INFO - 총 50168개의 항목 확인: /home/lee/food-classification/downloader/data/raw/052.건강관리를_위한_음식_이미지_데이터/01.데이터/2.Validation/원천데이터/음식104_Val.zip
+2026-02-24 19:04:16,405 - INFO - 클래스 카운팅 완료. 대상 폴더로 압축 해제를 진행합니다.
+2026-02-24 19:25:09,867 - ERROR - ❌ 압축 해제 중 오류 발생: [Errno 28] No space left on device
+Traceback (most recent call last):
+  File "/home/lee/food-classification/downloader/extractor.py", line 60, in extract_worker
+    z.extractall(target_folder)
+  File "/usr/lib/python3.11/zipfile.py", line 1715, in extractall
+    self._extract_member(zipinfo, pa
