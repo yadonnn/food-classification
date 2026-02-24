@@ -45,102 +45,59 @@ def resize_with_padding(image_path, src_root, dst_root, target_size=384):
         return None
 
 
-def transform_consumer(queue, src_root='data/extracted', dst_root='data/resized_384_webp', target_size=384):
-    src_root_path = Path(src_root)
+def transform_worker(folder_queue, upload_queue, src_root='data/extracted', dst_root='data/resized_384_webp', target_size=384):
+    import shutil
+    src_root_path = Path(src_root).resolve()
     os.makedirs(dst_root, exist_ok=True)
-
-    processed = 0
-    skipped = 0
-    seen = set()
-    start_time = time.time()
-
+    
+    # 리소스 제한 (CPU 병목 방지를 위해 max_workers를 2명 정도로 제한)
+    executor = ProcessPoolExecutor(max_workers=2)
+    
     while True:
-        item = queue.get()
-        if item is None:
+        folder_item = folder_queue.get()
+        if folder_item is None:
+            print("이미지 변환 워커: 종료 신호 수신")
+            upload_queue.put(None)
             break
-
-        image_path = Path(item).resolve()
-        if image_path in seen:
+            
+        folder_path = Path(folder_item).resolve()
+        print(f"🔄 이미지 변환 시작: {folder_path}")
+        
+        if not folder_path.exists() or not folder_path.is_dir():
+            print(f"⚠️ 폴더가 존재하지 않거나 디렉토리가 아닙니다: {folder_path}")
             continue
-        seen.add(image_path)
-
-        if not image_path.exists():
-            skipped += 1
+            
+        files = sorted([f for f in folder_path.rglob('*') if f.suffix.lower() in ('.jpg', '.png', '.jpeg')])
+        
+        if not files:
+            print(f"⚠️ 폴더에 이미지 파일이 없습니다: {folder_path}")
+            # 이미지가 없더라도 폴더는 삭제
+            try:
+                shutil.rmtree(folder_path)
+                print(f"🗑️ 빈 원본 폴더 삭제 완료: {folder_path}")
+            except Exception as e:
+                pass
             continue
-
-        result = resize_with_padding(image_path, src_root_path, dst_root, target_size=target_size)
-        if result is None:
-            skipped += 1
-            continue
-
-        processed += 1
-        if processed % 200 == 0:
-            print(f"🧩 transform 진행: {processed}장")
-
-    end_time = time.time()
-    duration = end_time - start_time
-    final_size_bytes = get_dir_size_bytes(dst_root)
-    final_size_gb = final_size_bytes / (1024 ** 3)
-    final_size_mb = final_size_bytes / (1024 ** 2)
-    avg_speed = processed / duration if duration > 0 else 0
-    avg_size_kb = (final_size_bytes / processed) / 1024 if processed > 0 else 0
-
-    print("\n" + "="*50)
-    print("📋 [실시간 변환 완료 요약 리포트]")
-    print("="*50)
-    print(f"✅ 총 처리 이미지: {processed:,} 장")
-    print(f"⏭️ 스킵 이미지: {skipped:,} 장")
-    print(f"📦 전체 저장 용량: {final_size_gb:.2f} GB ({final_size_mb:.2f} MB)")
-    print(f"🖼️ 장당 평균 용량: {avg_size_kb:.2f} KB")
-    print(f"⏱️ 총 소요 시간  : {duration/60:.1f} 분")
-    print(f"⚡ 평균 처리 속도: {avg_speed:.2f} img/s")
-    print("="*50)
-
-def run_transform():
-    SRC = 'data/extracted'
-    DST = 'data/resized_384_webp'
-    
-    files = sorted([f for f in Path(SRC).rglob('*') if f.suffix.lower() in ('.jpg', '.png', '.webp')])
-    total_files = len(files)
-    
-    start_time = time.time() # 시작 시간 기록
-    
-    # 🚀 tqdm 진행바 시작
-    pbar = tqdm(total=total_files, desc="🚀 Resizing", unit="img", colour='green')
-    current_class = ""
-    
-    with ProcessPoolExecutor() as executor:
-        func = partial(resize_with_padding, src_root=Path(SRC), dst_root=DST)
+            
+        func = partial(resize_with_padding, src_root=src_root_path, dst_root=dst_root, target_size=target_size)
+        
+        processed_count = 0
         for res in executor.map(func, files):
             if res:
-                pbar.set_postfix(class_name=res.parent.name)
-            pbar.update(1)
+                # res는 src_root에 대한 상대 경로
+                # 실제 저장된 절대/상대 경로를 만들어 upload_queue에 전달
+                upload_item = (Path(dst_root) / res).with_suffix('.webp')
+                upload_queue.put(str(upload_item))
+                processed_count += 1
+                
+        print(f"✅ 이미지 변환 완료 ({processed_count}/{len(files)}장): {folder_path}")
+        
+        # [중요] 삭제 로직 2: 리사이징 및 업로드 큐 적재가 끝나면 원본 해제 폴더 삭제
+        try:
+            shutil.rmtree(folder_path)
+            print(f"🗑️ 원본 해제 폴더 삭제 완료: {folder_path}")
+        except Exception as e:
+            print(f"❌ 원본 폴더 삭제 실패: {folder_path} ({e})")
             
-    pbar.close()
-    end_time = time.time() # 종료 시간 기록
+    executor.shutdown(wait=True)
 
-    # --- 📊 최종 리포트 계산 ---
-    print("\n" + "="*50)
-    print("📋 [작업 완료 요약 리포트]")
-    print("="*50)
-    
-    # 1. 용량 계산
-    final_size_bytes = get_dir_size_bytes(DST)
-    final_size_gb = final_size_bytes / (1024 ** 3)
-    final_size_mb = final_size_bytes / (1024 ** 2)
-    
-    # 2. 통계 계산
-    duration = end_time - start_time
-    avg_speed = total_files / duration if duration > 0 else 0
-    avg_size_kb = (final_size_bytes / total_files) / 1024 if total_files > 0 else 0
-
-    # 3. 출력
-    print(f"✅ 총 처리 이미지: {total_files:,} 장")
-    print(f"📦 전체 저장 용량: {final_size_gb:.2f} GB ({final_size_mb:.2f} MB)")
-    print(f"🖼️ 장당 평균 용량: {avg_size_kb:.2f} KB")
-    print(f"⏱️ 총 소요 시간  : {duration/60:.1f} 분")
-    print(f"⚡ 평균 처리 속도: {avg_speed:.2f} img/s")
-    print("="*50)
-
-if __name__ == "__main__":
-    run_transform()
