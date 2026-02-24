@@ -18,7 +18,7 @@ def run_pipeline(is_test=False):
     upload_queue = multiprocessing.Queue(maxsize=50)
     
     # 워커 프로세스 초기화
-    p_download = multiprocessing.Process(target=download_worker, args=(zip_queue,))
+    p_download = multiprocessing.Process(target=download_worker, args=(zip_queue, is_test))
     p_extract = multiprocessing.Process(target=extract_worker, args=(zip_queue, folder_queue))
     p_transform = multiprocessing.Process(target=transform_worker, args=(folder_queue, upload_queue))
     p_upload = multiprocessing.Process(target=upload_worker, args=(upload_queue,))

@@ -30,20 +30,31 @@ def get_zip_files():
     search_pattern = os.path.join(os.path.abspath(DOWNLOAD_DIR), "**", "*.zip")
     return set(glob.glob(search_pattern, recursive=True))
 
-def download_worker(zip_queue):
+def download_worker(zip_queue, is_test=False):
     """
     다운로더 워커 함수:
     aihubshell로 파일을 다운로드하고, 새로 다운로드된 ZIP 파일 경로를 zip_queue에 넣습니다.
-    (Backpressure는 zip_queue.put()의 기본 blocking 성질과 큐의 maxsize에 의해 제어됨)
+    (is_test=True일 경우 mock_generator를 사용합니다.)
     """
-    for key in AIHUB_FILE_KEYS:
-        print(f"📦 파일 키 {key} 다운로드 시도 중...")
+    # 테스트 모드일 경우 대상을 줄여서 1개만 수행
+    keys_to_download = AIHUB_FILE_KEYS[:1] if is_test else AIHUB_FILE_KEYS
+    
+    for key in keys_to_download:
+        print(f"📦 파일 키 {key} 다운로드 시도 중... (Test Mode: {is_test})")
         
         before_files = get_zip_files()
-        command = f"aihubshell -mode d -datasetkey {AIHUB_PROJECT_KEY} -filekey {key} -aihubapikey {api_key}"
         
         try:
-            subprocess.run(command, cwd=DOWNLOAD_DIR, shell=True, check=True)
+            if is_test:
+                from mock_generator import create_mock_zip
+                # 가상의 경로에 ZIP 생성
+                mock_filename = f"test_data_{key}.zip"
+                mock_path = os.path.join(DOWNLOAD_DIR, mock_filename)
+                create_mock_zip(mock_path)
+            else:
+                command = f"aihubshell -mode d -datasetkey {AIHUB_PROJECT_KEY} -filekey {key} -aihubapikey {api_key}"
+                subprocess.run(command, cwd=DOWNLOAD_DIR, shell=True, check=True)
+            
             print(f"✅ 파일 키 {key} 완료!")
             
             after_files = get_zip_files()
@@ -56,7 +67,7 @@ def download_worker(zip_queue):
             else:
                 print(f"⚠️ 파일 키 {key} 완료. 새 ZIP 파일 발견 안됨.")
                 
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        except (subprocess.CalledProcessError, FileNotFoundError, Exception) as e:
             print(f"❌ 파일 키 {key} 실패: {e}")
             log_download_error(key, e)
 
