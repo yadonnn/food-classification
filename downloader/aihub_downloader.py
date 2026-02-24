@@ -46,7 +46,7 @@ def download_worker(zip_queue, is_test=False):
         
         try:
             if is_test:
-                from mock_generator import create_mock_zip
+                from tests.mock_generator import create_mock_zip
                 # 가상의 경로에 ZIP 생성
                 mock_filename = f"test_data_{key}.zip"
                 mock_path = os.path.join(DOWNLOAD_DIR, mock_filename)
