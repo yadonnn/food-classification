@@ -1,7 +1,7 @@
 import os
 import zipfile
 from collections import defaultdict
-from logger import ChunkTracker, step_monitor, pipeline_logger, integrity_checker
+from logger import ChunkTracker, step_monitor, pipeline_logger
 from config.default import LOG_DIR, DOWNLOAD_DIR, EXTRACT_DIR
 import glob
 
@@ -20,7 +20,6 @@ def encode_korean(filename):
     return name
 
 @step_monitor(extract_tracker)
-@integrity_checker("압축 해제")
 def unzip_file(file_key, zip_dir=DOWNLOAD_DIR, extract_dir=EXTRACT_DIR):
     zip_files = get_zip_files(zip_dir)
     target_zip = None
@@ -57,10 +56,14 @@ def unzip_file(file_key, zip_dir=DOWNLOAD_DIR, extract_dir=EXTRACT_DIR):
     try:
         with zipfile.ZipFile(target_zip, 'r') as zip_ref:
             # 1. 기대하는 파일 총 개수 계산 (디렉토리 제외)
-            expected_files = sum(1 for info in zip_ref.infolist() if not info.is_dir())
+            expected_files = sum(
+                1 for info in zip_ref.infolist() 
+                if not info.is_dir()
+            )
             
             for info in zip_ref.infolist():
                 decoded_name = encode_korean(info.filename)
+                
                 target_path = os.path.join(target_folder, decoded_name)
                 
                 if info.is_dir():
@@ -78,8 +81,7 @@ def unzip_file(file_key, zip_dir=DOWNLOAD_DIR, extract_dir=EXTRACT_DIR):
         
     except Exception as e:
         pipeline_logger.error(f"❌ 압축 해제 중 오류 발생: {e}")
-        return False, expected_files, actual_files
+        return False
         
-    # 무결성 검증을 위해 튜플 리턴 (실패 시 데코레이터가 잡아서 전체 리턴 False로 처리)
-    return extraction_success, expected_files, actual_files
+    return extraction_success
 

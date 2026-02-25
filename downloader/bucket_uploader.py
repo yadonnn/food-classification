@@ -1,31 +1,36 @@
 import os
 from config.default import LOG_DIR
-from config.default import LOG_DIR
-from logger import ChunkTracker, step_monitor, pipeline_logger, integrity_checker
-import glob
+from logger import ChunkTracker, step_monitor, pipeline_logger
+from google.cloud import storage
 
 upload_tracker = ChunkTracker(state_file=LOG_DIR / "upload_state.json")
 
 @step_monitor(upload_tracker)
-@integrity_checker("S3 업로드")
-def upload_to_s3(chunk_key, source_folder, bucket_name):
+def upload_to_s3(chunk_key, archive_file, bucket_name):
     """
-    S3 버킷으로 폴더를 업로드하는 예시 함수. 
-    (현재는 실제 boto3 코드가 없으므로 더미 응답을 반환합니다)
+    GCS 버킷에 파일을 업로드
     """
-    pipeline_logger.info(f"⬆️ [{chunk_key}] s3://{bucket_name}/ 에 업로드 시뮬레이션 중...")
+    pipeline_logger.info(f"⬆️ [{chunk_key}] gs://{bucket_name}/ 에 이미 압축된 파일 업로드 시작...")
     
-    # 예시: os.system(f"aws s3 cp {source_folder} s3://{bucket_name}/ --recursive")
+    if not archive_file or not os.path.exists(archive_file):
+        pipeline_logger.error(f"❌ 업로드할 압축 파일이 존재하지 않습니다: {archive_file}")
+        return False
+        
+    try:
+        # GCP Storage 클라이언트 초기화
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        
+        blob_name = chunk_key + ".zip"
+        blob = bucket.blob(blob_name)
+        
+        file_size_mb = os.path.getsize(archive_file) / (1024**2)
+        pipeline_logger.info(f"⬆️ [{chunk_key}] '{blob_name} ({file_size_mb:.2f} MB)' 업로드 중...")
+        
+        blob.upload_from_filename(archive_file)
+    except Exception as e:
+        pipeline_logger.error(f"❌ 업로드 중 오류 발생: {e}")
+        return False
     
-    # 1. 소스 폴더의 총 파일 개수 산정
-    search_pattern = os.path.join(os.path.abspath(source_folder), "**", "*.*")
-    local_files = glob.glob(search_pattern, recursive=True)
-    expected_count = len(local_files)
-    
-    # 2. 업로드 시뮬레이션 (실제로는 boto3 등으로 S3 list_objects_v2 호출하여 비교)
-    actual_uploaded = expected_count 
-    
-    pipeline_logger.info(f"✅ [{chunk_key}] 버킷 적재 완료!")
-    # 무결성 검증을 위한 튜플 리턴
-    target_success = (expected_count == actual_uploaded)
-    return target_success, expected_count, actual_uploaded
+    pipeline_logger.info(f"✅ [{chunk_key}] 단일 압축 파일(GCS 버킷 적재) 완료! ({blob_name})")
+    return True

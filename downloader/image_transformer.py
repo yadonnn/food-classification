@@ -7,8 +7,8 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from tqdm import tqdm
 
-from config.default import LOG_DIR
-from logger import ChunkTracker, step_monitor, pipeline_logger, integrity_checker
+from config.default import *
+from logger import ChunkTracker, step_monitor, pipeline_logger
 
 transform_tracker = ChunkTracker(state_file=LOG_DIR / "transform_state.json")
 
@@ -74,77 +74,49 @@ def resize_with_padding(image_path: Path,
         return None
 
 
-def transform_consumer(queue,
-                       src_root: str = TRANSFORM_SRC_DIR,
-                       dst_root: str = TRANSFORM_DST_DIR,
-                       target_size: int = TARGET_SIZE):
-    os.makedirs(dst_root, exist_ok=True)
-    src_root_path = Path(src_root)
-
-    processed = 0
-    skipped = 0
-    seen = set()
-    start_time = time.time()
-
-    while True:
-        item = queue.get()
-        if item is None:
-            break
-
-        image_path = Path(item).resolve()
-        if image_path in seen:
-            continue
-        seen.add(image_path)
-
-        if not image_path.exists():
-            skipped += 1
-            continue
-
-        result = resize_with_padding(image_path,
-                                     src_root_path,
-                                     dst_root,
-                                     target_size=target_size)
-        if result is None:
-            skipped += 1
-            continue
-
-        processed += 1
-        if processed % 200 == 0:
-            print(f"🧩 transform 진행: {processed}장")
-
-    end_time = time.time()
-    print_summary_report(start_time, end_time, processed, dst_root, skipped_count=skipped)
-
 @step_monitor(transform_tracker)
-@integrity_checker("이미지 리사이징")
 def run_transform_for_chunk(chunk_key, src_root: str = TRANSFORM_SRC_DIR, dst_root: str = TRANSFORM_DST_DIR):
     """지정된 청크(파일/폴더 등) 단위로 이미지 변환을 수행하는 함수.
        현재는 전체 폴더를 한 번에 변환하도록 구성되어 있으므로 chunk_key="all_images" 형태로 호출 가능합니다."""
     
     pipeline_logger.info("🚀 이미지 리사이징 병렬 처리 준비 중...")
     
-    files = sorted([f for f in Path(src_root).rglob('*') if f.suffix.lower() in ('.jpg', '.png', '.webp')])
-    total_files = len(files)
+    # 이미지 외의 메타데이터(json 등) 파일도 결과 폴더로 복사하기 위해 파일 목록 분류
+    all_files = [f for f in Path(src_root).rglob('*') if f.is_file()]
+    image_files = [f for f in all_files if f.suffix.lower() in ('.jpg', '.png', '.webp')]
+    json_files = [f for f in all_files if f.suffix.lower() == '.json']
+    
+    total_images = len(image_files)
     
     start_time = time.time() # 시작 시간 기록
     
+    # 🚀 JSON 등 메타데이터 라벨 파일 복사 처리
+    pipeline_logger.info(f"📂 라벨링 데이터(JSON) 복사 시작... (총 {len(json_files)}개)")
+    import shutil
+    for j_file in json_files:
+        relative_path = j_file.relative_to(Path(src_root))
+        save_path = Path(dst_root) / relative_path
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(str(j_file), str(save_path))
+        
+    pipeline_logger.info(f"✅ 라벨링 데이터 복사 완료!")
+    
     # 🚀 tqdm 진행바 시작
-    pbar = tqdm(total=total_files, desc="🚀 Resizing", unit="img", colour='green')
-    actual_files = 0
+    pbar = tqdm(total=total_images, desc="🚀 Resizing", unit="img", colour='green')
+    actual_images = 0
     
     with ProcessPoolExecutor() as executor:
         func = partial(resize_with_padding, src_root=src_root, dst_root=dst_root)
-        for res in executor.map(func, files):
+        for res in executor.map(func, image_files):
             if res:
                 pbar.set_postfix(class_name=res.parent.name)
-                actual_files += 1
+                actual_images += 1
             pbar.update(1)
             
     pbar.close()
     end_time = time.time() # 종료 시간 기록
 
     # --- 📊 최종 리포트 계산 및 출력 ---
-    print_summary_report(start_time, end_time, actual_files, dst_root)
-    # 무결성 검증을 위해 (성공여부, 변환시도파일수, 실제성공파일수) 리턴
-    target_success = (actual_files == total_files)
-    return target_success, total_files, actual_files
+    print_summary_report(start_time, end_time, actual_images, dst_root)
+    target_success = (actual_images == total_images)
+    return target_success

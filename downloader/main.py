@@ -4,17 +4,18 @@ from config.default import (
     DOWNLOAD_DIR,
     EXTRACT_DIR,
     TRANSFORM_SRC_DIR,
-    TRANSFORM_DST_DIR
+    TRANSFORM_DST_DIR,
+    BUCKET_NAME
 )
 from logger import pipeline_logger
 from aihub_downloader import download_file
 from extractor import unzip_file
 from image_transformer import run_transform_for_chunk
+from archiver import compress_folder
 from bucket_uploader import upload_to_s3
 from cleanup_manager import cleanup_chunk_files
 
 def run_pipeline():
-    """전체 데이터 수집 및 가공 파이프라인을 관장하는 중앙 컨트롤 타워"""
     pipeline_logger.info("======================================================")
     pipeline_logger.info("🚀 AIHub MLOps 파이프라인 시작 (중앙 제어)")
     pipeline_logger.info("======================================================")
@@ -49,17 +50,26 @@ def run_pipeline():
             pipeline_logger.warning(f"⚠️ [오류] {key} 이미지 변환 실패. 다음 청크로.")
             continue
             
-        # [Step 4] 클라우드 스토리지 적재 (AWS S3 시뮬레이션)
-        upload_success = upload_to_s3(
-            chunk_key=f"upload_{key}",
-            source_folder=current_dst_dir,
-            bucket_name="my-ai-dataset-bucket"
+        # [Step 4] 임시 ZIP 압축 (GCP 분리 저장 전 단일 파일화)
+        archive_file = compress_folder(
+            chunk_key=f"archive_{key}",
+            source_folder=current_dst_dir
         )
-        if not upload_success:
-            pipeline_logger.warning(f"⚠️ [오류] {key} 패키지 업로드 실패.")
+        if not archive_file:
+            pipeline_logger.warning(f"⚠️ [오류] {key} 패키징(압축) 실패. 다음 청크로.")
             continue
             
-        # [Step 5] S3 업로드까지 완벽히 끝난 경우에 한해 로컬 스테이징 파일 클린업
+        # [Step 5] 클라우드 스토리지 단일 파일 적재 (GCP Cloud Storage)
+        upload_success = upload_to_s3(
+            chunk_key=f"upload_{key}",
+            archive_file=archive_file,
+            bucket_name=BUCKET_NAME
+        )
+        if not upload_success:
+            pipeline_logger.warning(f"⚠️ [오류] {key} 패키지(GCP) 업로드 실패.")
+            continue
+            
+        # [Step 6] S3 업로드까지 완벽히 끝난 경우에 한해 로컬 스테이징 파일 클린업
         cleanup_chunk_files(file_key=key)
         
     pipeline_logger.info("\n🎉 전체 파일 처리 및 트랜잭션 파이프라인이 종료되었습니다!! 🎉")

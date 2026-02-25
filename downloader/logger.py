@@ -3,7 +3,7 @@ import logging
 import json
 import os
 from config.default import *
-
+from datetime import datetime
 # ==========================================
 # 로깅 기본 설정 추가
 # ==========================================
@@ -79,15 +79,11 @@ def step_monitor(tracker):
                 pipeline_logger.info(f"▶ [START] {chunk_key} 처리를 시작합니다.")
                 result = func(chunk_key, *args, **kwargs)
                 
-                # step_monitor를 무결성 체크 데코레이터보다 바깥에 둘 경우
-                # result가 (성공여부, expected, actual) 튜플일 수 있으므로 이를 처리함
-                is_success = result[0] if isinstance(result, tuple) else result
-                
-                if is_success:
+                if result:
                     tracker.update(chunk_key, "SUCCESS")
                     pipeline_logger.info(f"✔ [SUCCESS] {chunk_key} 완료")
                 else:
-                    tracker.update(chunk_key, "FAILED", error="무결성 검증 또는 내부 로직 실패")
+                    tracker.update(chunk_key, "FAILED", error="내부 로직 실패")
                 return result
                 
             except Exception as e:
@@ -97,35 +93,6 @@ def step_monitor(tracker):
                 # 다음 청크 진행을 위해 에러를 밖으로 던지지 않고 로그만 남김
                 return False
                 
-        return wrapper
-    return decorator
-
-def integrity_checker(action_name):
-    """
-    함수 실행 결과가 (success_bool, expected_count, actual_count) 튜플일 때
-    이를 검증해 무결성을 통과했는지 로깅하는 데코레이터.
-    무결성이 실패하면 파이프라인 진행(success)을 False로 만듭니다.
-    """
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(chunk_key, *args, **kwargs):
-            result = func(chunk_key, *args, **kwargs)
-            
-            # 함수 결과가 (성공여부, 예상치, 실제치) 형태일 때 무결성 검증
-            if isinstance(result, tuple) and len(result) == 3:
-                success, expected, actual = result
-                if not success:
-                    return False
-                    
-                if expected != actual:
-                    pipeline_logger.error(f"❌ [무결성 실패 - {action_name}] {chunk_key} 파일 개수 불일치 (예상: {expected}, 실제: {actual})")
-                    return False
-                else:
-                    pipeline_logger.info(f"✅ [무결성 통과 - {action_name}] {chunk_key} 일치 확인 (총 {actual}개)")
-                    return True
-                    
-            # 그 외의 반환값(단순 boolean 등)은 그대로 리턴
-            return result
         return wrapper
     return decorator
 

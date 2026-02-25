@@ -3,7 +3,6 @@
 # 1. 시스템 업데이트 및 필수 도구 설치
 sudo apt update
 sudo apt install -y software-properties-common curl git fontconfig
-sudo apt-get install -y fonts-nanum
 # 2. Python 3.11 설치
 sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt update
