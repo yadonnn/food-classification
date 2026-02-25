@@ -7,11 +7,7 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from tqdm import tqdm
 
-# --- 경로 설정 ---
-TARGET_SIZE = 384
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = os.path.join(BASE_DIR, "data", "extracted")
-DST_DIR = os.path.join(BASE_DIR, "data", f"resized_{TARGET_SIZE}_webp")
+from config import TARGET_SIZE, TRANSFORM_SRC_DIR, TRANSFORM_DST_DIR
 
 def get_dir_size_bytes(path):
     """폴더의 전체 용량을 Byte 단위로 계산 (정밀도 유지)"""
@@ -48,8 +44,8 @@ def print_summary_report(start_time, end_time, processed_count, dst_root, skippe
 
 
 def resize_with_padding(image_path: Path,
-                        src_root: str = SRC_DIR,
-                        dst_root: str = DST_DIR,
+                        src_root: str = TRANSFORM_SRC_DIR,
+                        dst_root: str = TRANSFORM_DST_DIR,
                         target_size: int = TARGET_SIZE):
     """이미지 리사이징 및 저장 핵심 로직"""
     try:
@@ -76,8 +72,8 @@ def resize_with_padding(image_path: Path,
 
 
 def transform_consumer(queue,
-                       src_root: str = SRC_DIR,
-                       dst_root: str = DST_DIR,
+                       src_root: str = TRANSFORM_SRC_DIR,
+                       dst_root: str = TRANSFORM_DST_DIR,
                        target_size: int = TARGET_SIZE):
     os.makedirs(dst_root, exist_ok=True)
     src_root_path = Path(src_root)
@@ -116,7 +112,7 @@ def transform_consumer(queue,
     end_time = time.time()
     print_summary_report(start_time, end_time, processed, dst_root, skipped_count=skipped)
 
-def run_transform(src_root: str = SRC_DIR, dst_root: str = DST_DIR):
+def run_transform(src_root: str = TRANSFORM_SRC_DIR, dst_root: str = TRANSFORM_DST_DIR):
     
     files = sorted([f for f in Path(src_root).rglob('*') if f.suffix.lower() in ('.jpg', '.png', '.webp')])
     total_files = len(files)
