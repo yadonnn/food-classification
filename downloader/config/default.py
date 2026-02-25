@@ -1,13 +1,13 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
-load_dotenv()
+# from dotenv import load_dotenv
+# load_dotenv()
 
 # ======================================================================
 # --- 공통 경로 설정 ---
 # ======================================================================
-CURRENT_FILE_PATH = Path(__file__).resolve() # 현재 파일의 절대 경로
-BASE_DIR = CURRENT_FILE_PATH.parent # 현재 파일의 부모 디렉토리
+CURRENT_FILE_PATH = Path(__file__).resolve() # 현재 파일의 절대 경로 (downloader/config/default.py)
+BASE_DIR = CURRENT_FILE_PATH.parent.parent # 프로젝트 루트 디렉토리 (downloader/)
 DATA_DIR = BASE_DIR / "data"
 LOG_DIR = DATA_DIR / "logs"
 
