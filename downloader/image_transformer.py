@@ -6,8 +6,8 @@ from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
-from config.default import *
-from logger import with_logging, pipeline_logger
+from config import *
+from utils.logger import with_logging, pipeline_logger
 
 def get_dir_size_bytes(path):
     """폴더의 전체 용량을 Byte 단위로 계산 (정밀도 유지)"""

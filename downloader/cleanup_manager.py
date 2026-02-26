@@ -1,7 +1,7 @@
 import os
 import shutil
-from config.default import DOWNLOAD_DIR, EXTRACT_DIR, TRANSFORM_DST_DIR
-from logger import pipeline_logger
+from config import DOWNLOAD_DIR, EXTRACT_DIR, TRANSFORM_DST_DIR
+from utils.logger import pipeline_logger
 
 def cleanup_chunk_files(file_key):
     """

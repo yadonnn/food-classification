@@ -1,8 +1,8 @@
 import os
 import zipfile
-from collections import defaultdict
-from logger import with_logging, pipeline_logger
-from config.default import LOG_DIR, DOWNLOAD_DIR, EXTRACT_DIR
+from pathlib import Path
+from utils.logger import with_logging, pipeline_logger
+from config import LOG_DIR, DOWNLOAD_DIR, EXTRACT_DIR, BASE_DIR
 import glob
 
 def get_zip_files(directory: Path) -> set:
@@ -40,11 +40,12 @@ def unzip_file(file_path: Path, extract_dir: Path=EXTRACT_DIR) -> bool:
     return True 
 
 if __name__ == "__main__":
-    test_zip = Path("./test_data/src/sample.zip")
-    test_extract_dir = Path("./test_data/extracted")
-    
-    if test_zip.exists():
-        print(f"🚀 테스트 실행: {test_zip.name} 압축 해제 중...")
-        unzip_file(test_zip, test_extract_dir)
+    test_zip_path = BASE_DIR / "tests" / "test_data" / "src" / "test.zip"
+    test_extract_dir = BASE_DIR / "tests" / "test_data" / "extracted"
+    print(test_zip_path)
+    print(test_extract_dir)
+    if test_zip_path.exists():
+        print(f"🚀 테스트 실행: {test_zip_path.name} 압축 해제 중...")
+        unzip_file(test_zip_path, test_extract_dir)
     else:
         print("❌ 테스트할 ZIP 파일이 없습니다.")

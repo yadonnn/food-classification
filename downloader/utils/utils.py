@@ -2,7 +2,7 @@ import subprocess
 import re
 import shutil
 from logger import pipeline_logger
-from config.default import AIHUB_PROJECT_KEY
+from config import AIHUB_PROJECT_KEY
 
 def parse_size_to_bytes(size_str):
     """'15 MB', '1 GB' 등의 문자열을 바이트 단위 정수로 변환"""

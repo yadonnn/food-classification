@@ -2,7 +2,7 @@
 DOWNLOAD_DIR
 '''
 import subprocess
-from config.default import (
+from config import (
     AIHUB_API_KEY,
     DOWNLOAD_DIR,
     EXTRACT_DIR,
@@ -10,7 +10,7 @@ from config.default import (
     AIHUB_PROJECT_KEY,
     AIHUB_FILE_KEYS
 )
-from logger import pipeline_logger
+from utils.logger import pipeline_logger
 from utils.utils import check_storage
 
 @with_logging

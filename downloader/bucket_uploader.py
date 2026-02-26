@@ -1,6 +1,6 @@
 import os
-from config.default import LOG_DIR
-from logger import ChunkTracker, step_monitor, pipeline_logger
+from config import LOG_DIR
+from utils.logger import ChunkTracker, step_monitor, pipeline_logger
 from google.cloud import storage
 
 upload_tracker = ChunkTracker(state_file=LOG_DIR / "upload_state.json")

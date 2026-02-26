@@ -1,5 +1,5 @@
 import os
-from config.default import (
+from config import (
     AIHUB_FILE_KEYS,
     DOWNLOAD_DIR,
     EXTRACT_DIR,
@@ -7,7 +7,7 @@ from config.default import (
     TRANSFORM_DST_DIR,
     BUCKET_NAME
 )
-from logger import pipeline_logger
+from utils.logger import pipeline_logger
 from aihub_downloader import download_file
 from extractor import unzip_file
 from image_transformer import run_transform_for_chunk
@@ -27,7 +27,6 @@ def run_pipeline():
         pipeline_logger.info(f"\n--- [ {key} 트랜잭션 시작 ] ---")
         
         # [Step 1] 다운로드 시도 (이미 처리된 경우 스킵)
-        
         # 다운로드 시작 전 용량 체크 로직 수행
         if check_storage(key, download_dir=DOWNLOAD_DIR):
             download_success = download_file(key, download_dir=DOWNLOAD_DIR)

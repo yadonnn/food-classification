@@ -1,8 +1,8 @@
 import os
 import shutil
 from pathlib import Path
-from config.default import LOG_DIR, ARCHIVE_DIR
-from logger import pipeline_logger
+from config import LOG_DIR, ARCHIVE_DIR
+from utils.logger import pipeline_logger
 
 def compress_folder(chunk_key, source_folder, archive_dir=ARCHIVE_DIR):
     """
