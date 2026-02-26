@@ -14,6 +14,7 @@ from image_transformer import run_transform_for_chunk
 from archiver import compress_folder
 from bucket_uploader import upload_to_s3
 from cleanup_manager import cleanup_chunk_files
+from utils.utils import check_storage
 
 def run_pipeline():
     pipeline_logger.info("======================================================")
@@ -26,10 +27,13 @@ def run_pipeline():
         pipeline_logger.info(f"\n--- [ {key} 트랜잭션 시작 ] ---")
         
         # [Step 1] 다운로드 시도 (이미 처리된 경우 스킵)
-        download_success = download_file(key, download_dir=DOWNLOAD_DIR)
-        if not download_success:
-            pipeline_logger.warning(f"❌ [에러] 파일 {key} 다운로드 실패. 해당 청크를 건너뜁니다.")
-            continue
+        
+        # 다운로드 시작 전 용량 체크 로직 수행
+        if check_storage(key, download_dir=DOWNLOAD_DIR):
+            download_success = download_file(key, download_dir=DOWNLOAD_DIR)
+            if not download_success:
+                pipeline_logger.warning(f"❌ [에러] 파일 {key} 다운로드 실패. 해당 청크를 건너뜁니다.")
+                continue
             
         # [Step 2] 압축 해제 (최신 zip 파일 기준)
         unzip_success = unzip_file(key, zip_dir=DOWNLOAD_DIR, extract_dir=EXTRACT_DIR)

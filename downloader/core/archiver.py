@@ -2,11 +2,8 @@ import os
 import shutil
 from pathlib import Path
 from config.default import LOG_DIR, ARCHIVE_DIR
-from logger import ChunkTracker, step_monitor, pipeline_logger
+from logger import pipeline_logger
 
-archive_tracker = ChunkTracker(state_file=LOG_DIR / "archive_state.json")
-
-@step_monitor(archive_tracker)
 def compress_folder(chunk_key, source_folder, archive_dir=ARCHIVE_DIR):
     """
     지정된 폴더를 zip 파일로 압축하는 역할을 수행하는 함수 (SRP)

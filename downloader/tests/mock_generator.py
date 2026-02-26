@@ -27,4 +27,4 @@ def create_mock_zip(target_path, num_images=5):
     return target_path
 
 if __name__ == "__main__":
-    create_mock_zip("downloader/data/tmp/src/test.zip")
+    create_mock_zip("test_data/src/test.zip")
