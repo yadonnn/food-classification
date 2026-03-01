@@ -37,7 +37,7 @@ def unzip_file(file_path: Path, extract_dir: Path=EXTRACT_DIR) -> bool:
             target_path.parent.mkdir(parents=True, exist_ok=True)
             with open(target_path, 'wb') as f:
                 f.write(zip_ref.read(member))
-    return True 
+    return True
 
 if __name__ == "__main__":
     test_zip_path = BASE_DIR / "tests" / "test_data" / "src" / "test.zip"

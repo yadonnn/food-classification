@@ -68,7 +68,7 @@ def resize_with_padding(image_path: Path,
     return relative_path
 
 @with_logging
-def run_transform_for_chunk(chunk_key, src_root: Path = TRANSFORM_SRC_DIR, dst_root: Path = TRANSFORM_DST_DIR):
+def run_transform_for_chunk(src_root: Path = TRANSFORM_SRC_DIR, dst_root: Path = TRANSFORM_DST_DIR):
     """지정된 청크(파일/폴더 등) 단위로 이미지 변환을 수행하는 함수.
        현재는 전체 폴더를 한 번에 변환하도록 구성되어 있으므로 chunk_key="all_images" 형태로 호출 가능합니다."""
     

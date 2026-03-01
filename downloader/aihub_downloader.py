@@ -10,8 +10,7 @@ from config import (
     AIHUB_PROJECT_KEY,
     AIHUB_FILE_KEYS
 )
-from utils.logger import pipeline_logger
-from utils.utils import check_storage
+from utils import pipeline_logger, with_logging, check_storage
 
 @with_logging
 def download_file(file_key, download_dir=DOWNLOAD_DIR) -> bool:
@@ -21,3 +20,6 @@ def download_file(file_key, download_dir=DOWNLOAD_DIR) -> bool:
     # 문자열로 된 명령어를 실행하려면 shell=True 가 필요합니다.
     subprocess.run(command, cwd=download_dir, shell=True, check=True)
     return True
+
+if __name__ == "__main__":
+    download_file(AIHUB_FILE_KEYS[0])

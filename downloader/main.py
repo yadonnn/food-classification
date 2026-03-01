@@ -35,7 +35,7 @@ def run_pipeline():
                 continue
             
         # [Step 2] 압축 해제 (최신 zip 파일 기준)
-        unzip_success = unzip_file(key, zip_dir=DOWNLOAD_DIR, extract_dir=EXTRACT_DIR)
+        unzip_success = unzip_file(zip_dir=DOWNLOAD_DIR, extract_dir=EXTRACT_DIR)
         if not unzip_success:
             pipeline_logger.warning(f"⚠️ [오류] {key} 압축 해제 실패. 해당 청크를 건너뜁니다.")
             continue

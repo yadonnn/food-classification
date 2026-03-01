@@ -1,7 +1,7 @@
 import subprocess
 import re
 import shutil
-from logger import pipeline_logger
+from .logger import pipeline_logger
 from config import AIHUB_PROJECT_KEY
 
 def parse_size_to_bytes(size_str):

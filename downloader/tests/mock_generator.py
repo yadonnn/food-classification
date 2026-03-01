@@ -2,6 +2,8 @@ import os
 import zipfile
 import PIL.Image
 import io
+import sys
+from pathlib import Path
 
 def create_mock_zip(target_path, num_images=5):
     """
@@ -27,4 +29,5 @@ def create_mock_zip(target_path, num_images=5):
     return target_path
 
 if __name__ == "__main__":
-    create_mock_zip("test_data/src/test.zip")
+    BASE_DIR = Path(__file__).resolve().parent
+    create_mock_zip(BASE_DIR / "test_data" / "src" / "test.zip")
