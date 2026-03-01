@@ -65,5 +65,11 @@ def main():
 		# 4. 전처리된 이미지 압축파일 로컬 저장
 		shutil.make_archive(config.ARCHIVE_DIR / file_key, 'zip', config.TRANSFORM_DST_DIR)
 
+		# 5. 원본 파일 삭제
+		shutil.rmtree(config.DOWNLOAD_DST_DIR) 	# 1. 다운로드 zip 경로
+		shutil.rmtree(config.EXTRACT_DST_DIR)  	# 2. 압축 해제 경로
+		shutil.rmtree(config.TRANSFORM_DST_DIR) # 3. 전처리된 이미지 경로
+		# shutil.rmtree(config.ARCHIVE_DIR) 	# 4. 전처리된 이미지 압축파일 경로(GCS 업로드 후 삭제 예정)
+
 if __name__ == "__main__":
 	main()
