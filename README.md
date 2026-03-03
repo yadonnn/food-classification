@@ -109,7 +109,7 @@ GCP Bucket의 전처리 이미지를 불러와 EfficientNet 기반 음식 분류
 각 모듈은 독립적으로 실행됩니다. 모듈별 README를 참고하세요.
 
 ```bash
-# 전처리 워커 실행
+# 전처리 파이프라인 실행
 cd image-prep-pipeline
 cp .env.example .env  # 환경변수 설정
 pip install -r requirements.txt
