@@ -26,13 +26,13 @@ AIHub에서 제공하는 음식 이미지 데이터셋을 기반으로
 ## 🏗️ 전체 파이프라인
 
 ```
-AIHub ZIP
+AIHub
     ↓
-image-prep-worker     ← 데이터 수집 및 전처리 (CPU 서버)
+image-prep-pipeline     ← 데이터 수집 및 전처리
     ↓
 GCP Bucket
     ↓
-model-training        ← 모델 학습 및 평가 (GPU 서버)
+model-training        ← 모델 학습 및 평가
     ↓
 deploy                ← 모델 배포 및 서빙
 ```
@@ -43,7 +43,7 @@ deploy                ← 모델 배포 및 서빙
 
 ```
 food-classification/
-├── image-prep-worker/        # 데이터 전처리 워커
+├── image-prep-pipeline/        # 데이터 수집 및 전처리 파이프라인
 │   ├── main.py
 │   ├── config.py
 │   ├── config.yaml
@@ -64,13 +64,13 @@ food-classification/
 
 ## 🧩 모듈 설명
 
-### 🖼️ image-prep-worker
-AIHub에서 ZIP 파일을 다운로드하여 이미지를 리사이즈하고 GCP Bucket에 적재하는 CPU 서버용 전처리 워커
+### 🖼️ image-prep-pipeline
+AIHub에서 ZIP 파일을 다운로드하여 이미지를 리사이즈하고 GCP Bucket에 적재하는 데이터 수집 및 전처리 파이프라인
 
-→ [자세히 보기](./image-prep-worker/README.md)
+→ [자세히 보기](./image-prep-pipeline/README.md)
 
 ```
-다운로드 → ZIP 압축해제 → cv2.resize → GCP 업로드
+다운로드 → cv2.resize → GCS 업로드
 ```
 
 ### 🧠 model-training *(구현 예정)*
@@ -100,7 +100,7 @@ GCP Bucket의 전처리 이미지를 불러와 EfficientNet 기반 음식 분류
 | Phase 4 | 모델 학습 파이프라인 구현 | 📋 예정 |
 | Phase 5 | 모델 배포 및 서빙 | 📋 예정 |
 
-→ [상세 로드맵](./image-prep-worker/ROADMAP.md)
+→ [상세 로드맵](./ROADMAP.md)
 
 ---
 
@@ -110,7 +110,7 @@ GCP Bucket의 전처리 이미지를 불러와 EfficientNet 기반 음식 분류
 
 ```bash
 # 전처리 워커 실행
-cd image-prep-worker
+cd image-prep-pipeline
 cp .env.example .env  # 환경변수 설정
 pip install -r requirements.txt
 python main.py
