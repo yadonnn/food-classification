@@ -23,8 +23,8 @@ def main():
 		# 폴더 생성
 		config.init_directories()
 		# 1. aihub 다운로드
-		# command = f"aihubshell -mode d -datasetkey {config.AIHUB_PROJECT_KEY} -filekey {file_key} -aihubapikey {config.AIHUB_API_KEY}"
-		# subprocess.run(command, cwd=config.DOWNLOAD_DST_DIR, shell=True, check=True)
+		command = f"aihubshell -mode d -datasetkey {config.AIHUB_PROJECT_KEY} -filekey {file_key} -aihubapikey {config.AIHUB_API_KEY}"
+		subprocess.run(command, cwd=config.DOWNLOAD_DST_DIR, shell=True, check=True)
 
 		# 2. 압축 해제
 		print(get_zip_files(config.DOWNLOAD_DST_DIR))
