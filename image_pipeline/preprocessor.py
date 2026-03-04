@@ -4,6 +4,8 @@ OpenCV 기반 이미지 변환 로직
 import cv2
 import numpy as np
 import os
+import zipfile
+from pathlib import Path
 from config import *
 
 def resize_image(image_src_path: Path,
@@ -32,13 +34,18 @@ def extract_archive(src_root: Path = TRANSFORM_SRC_DIR,
                     dst_root: Path = TRANSFORM_DST_DIR) -> list[zipfile.ZipInfo]:
     """압축을 해제하고, ZipInfo 리스트 반환"""
     with zipfile.ZipFile(src_root, 'r') as z:
-        info_list = z.infolist()
-        for info in info_list:
+        info_list = []
+        for info in z.infolist():
             try:
+                if info.is_dir():
+                    continue
                 info.filename = info.filename.encode('cp437').decode('cp949')
+                info_list.append(info)
             except:
                 info.filename = info.filename
+                info_list.append(info)            
             z.extract(info.filename, dst_root)
+
     return info_list
 
 def make_archive(src_root: Path = ARCHIVE_SRC_DIR, dst_root: Path = ARCHIVE_DST_DIR) -> list[zipfile.ZipInfo]:

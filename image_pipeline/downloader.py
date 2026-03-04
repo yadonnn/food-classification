@@ -4,15 +4,13 @@ aihubshell 이용 가이드: https://www.aihub.or.kr/devsport/apishell/list.do
 import subprocess
 from config import (
     AIHUB_API_KEY,
-    DOWNLOAD_DIR,
-    EXTRACT_DIR,
-    LOG_DIR,
+    DOWNLOAD_DST_DIR,
+    EXTRACT_DST_DIR,
     AIHUB_PROJECT_KEY,
     AIHUB_FILE_KEYS
 )
-from utils import pipeline_logger, with_logging, check_storage
 
-def download_file(file_key, download_dir=DOWNLOAD_DIR) -> bool:
+def download_file(file_key, download_dir=DOWNLOAD_DST_DIR) -> bool:
     command = f"aihubshell -mode d -datasetkey {AIHUB_PROJECT_KEY} -filekey {file_key} -aihubapikey {AIHUB_API_KEY}"
     subprocess.run(command, cwd=download_dir, shell=True, check=True)
     return True

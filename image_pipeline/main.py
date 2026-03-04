@@ -11,10 +11,13 @@ def run_pipeline(file_key: str, is_test: bool = False):
 		# 1. 다운로드
 		downloader.download_file(file_key)
 		# 2. 압축 해제
-		info_list = downloader.extract_archive()
+		info_list = preprocessor.extract_archive()
 		# 3. 이미지 변환
-		for info in info_list:
-			preprocessor.resize_image(info.filename)
+		image_path_list = info_list.filename.map(
+			lambda x: config.TRANSFORM_SRC_DIR / x if x.is_file() else None
+		)
+		for image_path in image_path_list:
+			preprocessor.resize_image(image_path)
 		# 4. 전처리된 이미지 압축파일 로컬 저장
 		preprocessor.make_archive()
 		# 5. 원본 파일 삭제
@@ -26,7 +29,7 @@ def run_pipeline(file_key: str, is_test: bool = False):
 		print("test mode")
 		
 		# 2. 압축 해제
-		info_list = downloader.extract_archive()
+		info_list = preprocessor.extract_archive()
 		# 3. 이미지 변환
 		for info in info_list:
 			preprocessor.resize_image(info.filename)
