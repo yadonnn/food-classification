@@ -1,17 +1,21 @@
 ---
-name: "🚀 기능 추가 (Feature)"
-about: 새로운 기능을 제안하거나 구현할 때 사용합니다.
-title: "[Feat][Scope]:  "
+
+name: ✨ Feature
+about: New feature or enhancement
+title: "[Feat][Scope]: "
 labels: enhancement
 ---
-## Goal
+## Overview
+<!-- Brief description of what this feature does -->
 	- 
-## Scope
+## As-Is
+<!-- Current state / problem to solve -->
+	- 
+## To-Be
+<!-- Expected state after implementation -->
 	- 
 ## Tasks
 - [ ] 
-- [ ]
-- [ ]
-
-## DoD
-> 
+- [ ] 
+## References
+<!-- Related links, specs, or notes -->
