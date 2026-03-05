@@ -30,27 +30,32 @@ def resize_image(image_src_path: Path,
 # ====================================================
 # --- 압축 함수 ---
 # ====================================================
-def extract_archive(src_root: Path = TRANSFORM_SRC_DIR,
-                    dst_root: Path = TRANSFORM_DST_DIR) -> list[zipfile.ZipInfo]:
+def extract_archive(src_path: Path,
+                    dst_root: Path = EXTRACT_DST_DIR) -> list[Path]:
     """압축을 해제하고, ZipInfo 리스트 반환"""
-    with zipfile.ZipFile(src_root, 'r') as z:
-        info_list = []
+    with zipfile.ZipFile(src_path, 'r') as z:
+        path_list = []
         for info in z.infolist():
             try:
                 if info.is_dir():
                     continue
-                info.filename = info.filename.encode('cp437').decode('cp949')
-                info_list.append(info)
+                fixed_name = info.filename.encode('cp437').decode('cp949')
             except:
-                info.filename = info.filename
-                info_list.append(info)            
-            z.extract(info.filename, dst_root)
+                fixed_name = info.filename
+            
+            target_path = dst_root / fixed_name 
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(target_path, 'wb') as f:
+                f.write(z.read(info))
+            path_list.append(target_path)
 
-    return info_list
+    return path_list
 
-def make_archive(src_root: Path = ARCHIVE_SRC_DIR, dst_root: Path = ARCHIVE_DST_DIR) -> list[zipfile.ZipInfo]:
+def make_archive(file_name: str,
+                 src_root: Path = ARCHIVE_SRC_DIR,
+                 dst_root: Path = ARCHIVE_DST_DIR) -> list[zipfile.ZipInfo]:
     """디렉토리를 zip으로 압축하고, ZipInfo 리스트 반환"""
-    zip_dst_path = dst_root / f"{src_root.name}.zip"
+    zip_dst_path = dst_root / file_name
     with zipfile.ZipFile(zip_dst_path, 'w', compression=zipfile.ZIP_DEFLATED) as z:
         for file in src_root.rglob('*'):
             if file.is_file():
