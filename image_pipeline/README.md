@@ -38,11 +38,13 @@ AIHub ZIP (파일키 단위)
 ```
 image-prep-pipeline/
 ├── main.py           # 메인 파이프라인
+├── downloader.py     # 다운로드 로직
+├── preprocessor.py   # 전처리 로직
+├── uploader.py       # 업로드 로직 (구현 예정)
 ├── config.py         # 환경변수 및 경로 설정
 ├── .env.example      # 환경변수 템플릿
 ├── requirements.txt  # Python 패키지 목록
 ├── setup.sh          # 환경 세팅 스크립트 (aihubshell 설치 포함)
-├── ROADMAP.md        # 개발 로드맵
 └── README.md
 ```
 
@@ -62,17 +64,6 @@ AIHUB_API_KEY=your_aihub_api_key
 GOOGLE_APPLICATION_CREDENTIALS=your_gcp_service_account_key_path
 ```
 
-### 2. config.py 주요 설정
-
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `AIHUB_PROJECT_KEY` | AIHub 데이터셋 프로젝트 키 | `242` |
-| `AIHUB_FILE_KEYS` | 다운로드할 파일 키 목록 | 원천 13개 + 라벨 13개 |
-| `TARGET_SIZE` | 리사이즈 해상도 | `(384, 384)` |
-| `TRANSFORM_EXTENSION` | 변환 포맷 | `webp` |
-| `BUCKET_NAME` | GCP Bucket 이름 | `lee_modelcamp` |
-
----
 
 ## 🚀 실행
 

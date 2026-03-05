@@ -13,23 +13,23 @@
 - [x]  **Data Pipeline:** AIHub API 연동 및 데이터 다운로드, 전처리 로직 자동화
 - [x]  **Baseline Prep:** 이미지 리사이징 및 WebP 변환 기본 파이프라인 구축
 
-## v0.2.0: [Pipeline] Stability & Robustness
+## v0.2.0: [Pipeline] Modularization & Foundation
 **"모듈화 및 테스트 코드 작성"**
-- [ ] **Modularization:** 확장성 고려 Downloader, Processor, Uploader 모듈로 분리
-- [ ] **Error Handling:** 다운로드 실패, 이미지 손상 등 예외 상황에 대한 견고한 처리 로직 구현
+- [x] **Modularization:** 확장성 고려 Downloader, Processor, Uploader 모듈로 분리
+- [ ] **Logging System:** 로깅 시스템 구축으로 파이프라인 실행 상태 및 에러 추적
+- [ ] **Test Code:** 각 모듈별 테스트 코드 작성
+- [ ] **Label Data Preprocessing:** 레이블 데이터 분기 적용
+
+## v0.3.0: [Pipeline] Robustness
+**"안정성 향상"**
+- [ ] **Configuration:** YAML/JSON 기반의 고도화된 설정 관리 체계 도입
 - [ ] **Validation:** 전처리된 이미지의 무결성 검증 자동화
 - [ ] **Resume Capability:** 중단된 작업의 이어서 실행 기능 구현
-
-## v0.3.0: [Pipeline] Scalability & Performance
-**"성능 최적화 및 모듈화"**
-- [ ] **Parallel Processing:** 멀티프로세싱으로 전처리 성능 개선
-- [ ] **Logging System:** 로깅 시스템 구축으로 파이프라인 실행 상태 및 에러 추적
-- [ ] **Configuration:** YAML/JSON 기반의 고도화된 설정 관리 체계 도입
+- [ ] **Error Handling:** 다운로드 실패, 이미지 손상 등 예외 상황에 대한 견고한 처리 로직 구현
 
 ## v0.4.0: [Training] Scalability & Performance
 **"성능 최적화 및 모듈화"**
 - [ ] **Parallel Processing:** 멀티프로세싱으로 전처리 성능 개선
-- [ ] **Logging System:** 로깅 시스템 구축으로 파이프라인 실행 상태 및 에러 추적
 - [ ] **Configuration:** YAML/JSON 기반의 고도화된 설정 관리 체계 도입
 
 ## v1.0.0: [Deploy] MLOps & Integration
