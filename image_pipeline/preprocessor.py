@@ -1,5 +1,7 @@
 """
 OpenCV 기반 이미지 변환 로직
+압축 관련 로직
+파일 이동 로직
 """
 import cv2
 import numpy as np
@@ -7,6 +9,7 @@ import os
 import zipfile
 from pathlib import Path
 from config import *
+import shutil
 
 def resize_image(image_src_path: Path,
                  src_root: Path = TRANSFORM_SRC_DIR,
@@ -66,3 +69,8 @@ def make_archive(file_name: str,
         info_list = z.infolist()
     return info_list
 
+def move_file(src_path: Path,
+              dst_root: Path = ARCHIVE_DST_DIR) -> Path:
+    """src_path를 dst_root로 이동하고 이동한 파일 경로 반환"""
+    shutil.move(src_path, dst_root)
+    return dst_root / src_path.name
