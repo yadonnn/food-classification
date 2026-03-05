@@ -18,7 +18,7 @@
 - [x] **Modularization:** 확장성 고려 Downloader, Processor, Uploader 모듈로 분리
 - [ ] **Logging System:** 로깅 시스템 구축으로 파이프라인 실행 상태 및 에러 추적
 - [ ] **Test Code:** 각 모듈별 테스트 코드 작성
-- [ ] **Label Data Preprocessing:** 레이블 데이터 분기 적용
+- [x] **Label Data Preprocessing:** 레이블 데이터 분기 적용
 
 ## v0.3.0: [Pipeline] Robustness
 **"안정성 향상"**
