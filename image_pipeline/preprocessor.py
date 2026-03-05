@@ -53,9 +53,11 @@ def extract_archive(src_path: Path,
 
 def make_archive(file_name: str,
                  src_root: Path = ARCHIVE_SRC_DIR,
-                 dst_root: Path = ARCHIVE_DST_DIR) -> list[zipfile.ZipInfo]:
+                 dst_root: Path = ARCHIVE_DST_DIR,
+                 target_size: int = TARGET_SIZE,
+                 extension: str = TRANSFORM_EXTENSION) -> list[zipfile.ZipInfo]:
     """디렉토리를 zip으로 압축하고, ZipInfo 리스트 반환"""
-    zip_dst_path = dst_root / file_name
+    zip_dst_path = dst_root / f"{extension}_{str(target_size)}_{file_name}"
     with zipfile.ZipFile(zip_dst_path, 'w', compression=zipfile.ZIP_DEFLATED) as z:
         for file in src_root.rglob('*'):
             if file.is_file():
