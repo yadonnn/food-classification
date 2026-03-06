@@ -11,7 +11,9 @@ from config import (
     AIHUB_MANIFEST_CSV_PATH
 )
 from pathlib import Path
-import csv
+from logger import time_logger
+
+@time_logger
 def download_file(
         file_key: str | int,
         file_name: str,

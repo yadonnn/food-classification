@@ -9,6 +9,8 @@ load_dotenv()
 CURRENT_FILE_PATH = Path(__file__).resolve() # 현재 파일의 절대 경로 (image-prep-worker/config.py)
 BASE_DIR = CURRENT_FILE_PATH.parent # 프로젝트 루트 디렉토리 (image-prep-worker/)
 DATA_DIR = BASE_DIR / "data"
+LOG_DIR = DATA_DIR / "logs"
+LOG_FILE = LOG_DIR / "pipeline.log"
 
 # ======================================================================
 # --- AIHub 다운로더 설정 ---
@@ -21,6 +23,7 @@ AIHUB_FILE_KEYS = [
     "49589", "49590", "49591", "49592", "49593", "49594", "49595", "49596", "49597", "49598", "49599", "49600", "49601"  # 라벨(Json)
 ]
 AIHUB_MANIFEST_CSV_PATH = BASE_DIR / "manifests" / "download_list.csv"
+
 # ======================================================================
 # --- 압축파일 경로 설정 ---
 # ======================================================================
@@ -35,7 +38,7 @@ TRANSFORM_SRC_DIR = EXTRACT_DST_DIR
 TARGET_SIZE = 384
 TRANSFORM_EXTENSION = "webp"
 TRANSFORM_DST_DIR = DATA_DIR / "tmp" / f"{TRANSFORM_EXTENSION}_{TARGET_SIZE}"
-
+IMAGE_QUALITY = 90
 # ======================================================================
 # --- 압축파일 경로 설정 ---
 # ======================================================================
@@ -60,3 +63,4 @@ def init_directories():
     EXTRACT_DST_DIR.mkdir(parents=True, exist_ok=True)
     TRANSFORM_DST_DIR.mkdir(parents=True, exist_ok=True)
     ARCHIVE_DST_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)

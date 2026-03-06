@@ -42,6 +42,7 @@ image-prep-pipeline/
 ├── preprocessor.py   # 전처리 로직
 ├── uploader.py       # 업로드 로직 (구현 예정)
 ├── config.py         # 환경변수 및 경로 설정
+├── logger.py         # 로깅 설정
 ├── .env.example      # 환경변수 템플릿
 ├── requirements.txt  # Python 패키지 목록
 ├── setup.sh          # 환경 세팅 스크립트 (aihubshell 설치 포함)
@@ -88,12 +89,18 @@ python main.py
 실행 시 자동 생성됩니다.
 
 ```
-data/
-└── tmp/
-    ├── raw/                      # AIHub 다운로드 원본 ZIP
-    ├── extracted/                # ZIP 압축 해제 결과
-    ├── webp_(384, 384)/          # 리사이즈 변환 결과
-    └── archive/                  # 변환 결과 재압축
+root/
+├── manifests/
+│   ├── download_list.csv         # 다운로드 리스트
+│   └── donwload_list_raw.txt     # 다운로드 리스트 원본
+└── data/
+    ├── logs/
+    │   └── pipeline.log          # 로깅 파일
+    └── tmp/
+        ├── raw/                  # AIHub 다운로드 원본 ZIP
+        ├── extracted/            # ZIP 압축 해제 결과
+        ├── webp_(384, 384)/      # 리사이즈 변환 결과
+        └── archive/              # 변환 결과 재압축
 ```
 
 > `data/` 디렉토리는 `.gitignore`에 포함되어 있습니다.

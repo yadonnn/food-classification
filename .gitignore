@@ -4,3 +4,5 @@
 .venv_food
 __pycache__
 **/tests/fixtures/output
+logs/
+*.log
