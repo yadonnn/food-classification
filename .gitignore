@@ -6,3 +6,5 @@ __pycache__
 **/tests/fixtures/output
 logs/
 *.log
+benchmarks/results/    
+benchmarks/data/       

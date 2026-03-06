@@ -28,11 +28,11 @@ AIHub에서 제공하는 음식 이미지 데이터셋을 기반으로
 ```
 AIHub
     ↓
-image-prep-pipeline     ← 데이터 수집 및 전처리
+image_pipeline     ← 데이터 수집 및 전처리
     ↓
 GCP Bucket
     ↓
-model-training        ← 모델 학습 및 평가
+model_training        ← 모델 학습 및 평가
     ↓
 deploy                ← 모델 배포 및 서빙
 ```
@@ -43,37 +43,31 @@ deploy                ← 모델 배포 및 서빙
 
 ```
 food-classification/
-├── image-prep-pipeline/        # 데이터 수집 및 전처리 파이프라인
-│   ├── main.py
-│   ├── config.py
-│   ├── config.yaml
-│   ├── .env.example
-│   └── README.md
-│
-├── model-training/           # 모델 학습 (구현 예정)
-│   └── README.md
-│
-├── deploy/                   # 모델 배포 (구현 예정)
-│
-├── efficientnetfoods.ipynb   # EfficientNet 프로토타입 실험
-├── .gitignore
-└── README.md
+├── image_pipeline/        # 데이터 수집 및 전처리 파이프라인
+├── benchmark/             # 벤치마크 코드
+├── tests/                 # 테스트 코드
+├── legacy/                # 초기 모델 학습 코드
+├── model_training/        # 모델 학습 (구현 예정)
+├── deploy/                # 모델 배포 (구현 예정)
+├── CONTRIBUTING.md        # 컨트리뷰팅 규칙
+├── README.md              # 프로젝트 개요
+└── ROADMAP.md             # 로드맵
 ```
 
 ---
 
 ## 🧩 모듈 설명
 
-### 🖼️ image-prep-pipeline
+### 🖼️ image_pipeline
 AIHub에서 ZIP 파일을 다운로드하여 이미지를 리사이즈하고 GCP Bucket에 적재하는 데이터 수집 및 전처리 파이프라인
 
-→ [자세히 보기](./image-prep-pipeline/README.md)
+→ [자세히 보기](./image_pipeline/README.md)
 
 ```
 다운로드 → cv2.resize → GCS 업로드
 ```
 
-### 🧠 model-training *(구현 예정)*
+### 🧠 model_training *(구현 예정)*
 GCP Bucket의 전처리 이미지를 불러와 EfficientNet 기반 음식 분류 모델 학습
 
 ### 🚀 deploy *(구현 예정)*
@@ -110,7 +104,7 @@ GCP Bucket의 전처리 이미지를 불러와 EfficientNet 기반 음식 분류
 
 ```bash
 # 전처리 파이프라인 실행
-cd image-prep-pipeline
+cd image_pipeline
 cp .env.example .env  # 환경변수 설정
 pip install -r requirements.txt
 python main.py
