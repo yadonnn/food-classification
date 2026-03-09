@@ -97,7 +97,7 @@ GCP Bucket의 전처리 이미지를 불러와 EfficientNet 기반 음식 분류
 uv sync
 
 # 전처리 파이프라인 실행
-uv run -m image_pipeline.main
+uv run image_pipeline/main.py
 ```
 
 > 각 모듈에 대한 상세 설정은 모듈별 README를 참고하세요.
