@@ -74,22 +74,13 @@ GCP Bucket의 전처리 이미지를 불러와 EfficientNet 기반 음식 분류
 
 ---
 
-## 🔬 프로토타입 실험
-
-[`efficientnetfoods.ipynb`](./efficientnetfoods.ipynb) — Google Colab 기반 EfficientNet 음식 분류 실험
-
-- EfficientNet Transfer Learning 적용
-- 음식 카테고리 분류 모델 검증
-
----
-
 ## 🗺️ 로드맵
 
 | Phase | 내용 | 상태 |
 |-------|------|------|
 | Phase 1 | 기본 전처리 파이프라인 구현 | ✅ 완료 |
-| Phase 2 | 전처리 안정화 (예외처리, 로깅, 테스트) | 🔧 진행 중 |
-| Phase 3 | 인메모리 파이프라인 + 병렬처리 | 📋 예정 |
+| Phase 2 | 전처리 안정화 (예외처리, 로깅, 테스트) | ✅ 완료 |
+| Phase 3 | 인메모리 파이프라인 + 병렬처리 | 🔧 진행 중 |
 | Phase 4 | 모델 학습 파이프라인 구현 | 📋 예정 |
 | Phase 5 | 모델 배포 및 서빙 | 📋 예정 |
 
@@ -99,12 +90,14 @@ GCP Bucket의 전처리 이미지를 불러와 EfficientNet 기반 음식 분류
 
 ## ⚙️ 빠른 시작
 
-각 모듈은 독립적으로 실행됩니다. 모듈별 README를 참고하세요.
+`uv`를 사용하여 환경을 동기화하고 파이프라인을 실행합니다.
 
 ```bash
+# 전체 의존성 설치 및 동기화
+uv sync
+
 # 전처리 파이프라인 실행
-cd image_pipeline
-cp .env.example .env  # 환경변수 설정
-pip install -r requirements.txt
-python main.py
+uv run -m image_pipeline.main
 ```
+
+> 각 모듈에 대한 상세 설정은 모듈별 README를 참고하세요.

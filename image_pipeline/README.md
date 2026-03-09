@@ -70,16 +70,19 @@ GOOGLE_APPLICATION_CREDENTIALS=your_gcp_service_account_key_path
 
 ### 환경 세팅 (최초 1회)
 
+시스템 패키지와 `aihubshell`을 설치합니다.
+
 ```bash
-# aihubshell + Python 패키지 설치
 chmod +x setup.sh
 ./setup.sh
 ```
 
 ### 파이프라인 실행
 
+`uv`를 사용하여 실행합니다. (루트 디렉토리에서 실행 권장)
+
 ```bash
-python main.py
+uv run -m image_pipeline.main
 ```
 
 ---
