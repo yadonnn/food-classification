@@ -1,10 +1,9 @@
 .env
 **/.env
 **/data/
-.venv_food
+.venv
 __pycache__
 **/tests/fixtures/output
 logs/
 *.log
-benchmarks/results/    
-benchmarks/data/       
+.benchmarks

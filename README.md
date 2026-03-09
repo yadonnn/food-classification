@@ -44,7 +44,6 @@ deploy                ← 모델 배포 및 서빙
 ```
 food-classification/
 ├── image_pipeline/        # 데이터 수집 및 전처리 파이프라인
-├── benchmark/             # 벤치마크 코드
 ├── tests/                 # 테스트 코드
 ├── legacy/                # 초기 모델 학습 코드
 ├── model_training/        # 모델 학습 (구현 예정)

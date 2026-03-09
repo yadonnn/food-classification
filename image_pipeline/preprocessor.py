@@ -32,7 +32,7 @@ def resize_image(image_src_path: Path,
 
 @time_logger
 def transform_images(file_key: str,
-						image_path_list: list[Path]):
+					image_path_list: list[Path]):
     """"""
     total_images = len(image_path_list)
 

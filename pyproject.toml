@@ -1,0 +1,35 @@
+[project]
+name = "food-classification"
+version = "0.1.0"
+description = "ML pipeline for food classification"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+	# image_pipeline - Preprocessing
+    "opencv-python-headless==4.13.0.92",
+    "python-dotenv==1.2.1",
+
+	# model_training - GPU Training : 추가예정
+	
+]
+
+[tool.uv.workspace]
+members = [
+    "./image_pipeline",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+    "pytest-benchmark>=5.2.3",
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--benchmark-storage=./tests/data/benchmarks",
+    "--benchmark-autosave",
+]

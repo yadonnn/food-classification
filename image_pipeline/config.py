@@ -64,3 +64,5 @@ def init_directories():
     TRANSFORM_DST_DIR.mkdir(parents=True, exist_ok=True)
     ARCHIVE_DST_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+    dict().get
