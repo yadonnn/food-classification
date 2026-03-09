@@ -82,7 +82,7 @@ chmod +x setup.sh
 `uv`를 사용하여 실행합니다. (루트 디렉토리에서 실행 권장)
 
 ```bash
-uv run -m image_pipeline.main
+uv run image_pipeline/main.py
 ```
 
 ---
@@ -94,16 +94,16 @@ uv run -m image_pipeline.main
 ```
 root/
 ├── manifests/
-│   ├── download_list.csv         # 다운로드 리스트
-│   └── donwload_list_raw.txt     # 다운로드 리스트 원본
+│   ├── download_list.csv              # 다운로드 리스트
+│   └── donwload_list_raw.txt          # 다운로드 리스트 원본
 └── data/
     ├── logs/
-    │   └── pipeline.log          # 로깅 파일
+    │   └── pipeline.log               # 로깅 파일
     └── tmp/
-        ├── raw/                  # AIHub 다운로드 원본 ZIP
-        ├── extracted/            # ZIP 압축 해제 결과
-        ├── webp_(384, 384)/      # 리사이즈 변환 결과
-        └── archive/              # 변환 결과 재압축
+        ├── raw/                       # AIHub 다운로드 원본 ZIP
+        ├── extracted/                 # ZIP 압축 해제 결과
+        ├── {extension}_{target_size}/ # 리사이즈 변환 결과
+        └── archive/                   # 변환 결과 재압축
 ```
 
 > `data/` 디렉토리는 `.gitignore`에 포함되어 있습니다.

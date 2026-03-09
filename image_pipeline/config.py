@@ -16,7 +16,7 @@ LOG_FILE = LOG_DIR / "pipeline.log"
 # --- AIHub 다운로더 설정 ---
 # ======================================================================
 AIHUB_API_KEY = os.getenv("AIHUB_API_KEY")
-DOWNLOAD_DST_DIR = DATA_DIR / "tmp" / "src"
+DOWNLOAD_DST_DIR = DATA_DIR / "tmp" / "raw"
 AIHUB_PROJECT_KEY = "242"
 AIHUB_FILE_KEYS = [
     "49602", "49603", "49520", "49521", "49522", "49523", "49524", "49525", "49526", "49527", "49528", "49529", "49530", # 원천(Img)
