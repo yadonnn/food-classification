@@ -42,6 +42,7 @@ image-prep-pipeline/
 ├── preprocessor.py   # 전처리 로직
 ├── uploader.py       # 업로드 로직 (구현 예정)
 ├── config.py         # 환경변수 및 경로 설정
+├── logger.py         # 로깅 설정
 ├── .env.example      # 환경변수 템플릿
 ├── requirements.txt  # Python 패키지 목록
 ├── setup.sh          # 환경 세팅 스크립트 (aihubshell 설치 포함)
@@ -69,16 +70,19 @@ GOOGLE_APPLICATION_CREDENTIALS=your_gcp_service_account_key_path
 
 ### 환경 세팅 (최초 1회)
 
+시스템 패키지와 `aihubshell`을 설치합니다.
+
 ```bash
-# aihubshell + Python 패키지 설치
 chmod +x setup.sh
 ./setup.sh
 ```
 
 ### 파이프라인 실행
 
+`uv`를 사용하여 실행합니다. (루트 디렉토리에서 실행 권장)
+
 ```bash
-python main.py
+uv run -m image_pipeline.main
 ```
 
 ---
@@ -88,12 +92,18 @@ python main.py
 실행 시 자동 생성됩니다.
 
 ```
-data/
-└── tmp/
-    ├── raw/                      # AIHub 다운로드 원본 ZIP
-    ├── extracted/                # ZIP 압축 해제 결과
-    ├── webp_(384, 384)/          # 리사이즈 변환 결과
-    └── archive/                  # 변환 결과 재압축
+root/
+├── manifests/
+│   ├── download_list.csv         # 다운로드 리스트
+│   └── donwload_list_raw.txt     # 다운로드 리스트 원본
+└── data/
+    ├── logs/
+    │   └── pipeline.log          # 로깅 파일
+    └── tmp/
+        ├── raw/                  # AIHub 다운로드 원본 ZIP
+        ├── extracted/            # ZIP 압축 해제 결과
+        ├── webp_(384, 384)/      # 리사이즈 변환 결과
+        └── archive/              # 변환 결과 재압축
 ```
 
 > `data/` 디렉토리는 `.gitignore`에 포함되어 있습니다.
