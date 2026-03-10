@@ -156,8 +156,18 @@ dev = [
 
 [[package]]
 name = "image-pipeline"
-version = "0.1.0"
+version = "0.2.0"
 source = { virtual = "image_pipeline" }
+dependencies = [
+    { name = "opencv-python-headless" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "opencv-python-headless", specifier = "==4.13.0.92" },
+    { name = "python-dotenv", specifier = "==1.2.1" },
+]
 
 [[package]]
 name = "iniconfig"
