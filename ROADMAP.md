@@ -22,15 +22,15 @@
 
 ## v0.3.0: [Pipeline] Robustness
 **"안정성 향상"**
-- [ ] **Configuration:** YAML/JSON 기반의 고도화된 설정 관리 체계 도입
+- [x] **Configuration:** YAML/JSON 기반의 고도화된 설정 관리 체계 도입
 - [ ] **Validation:** 전처리된 이미지의 무결성 검증 자동화
 - [ ] **Resume Capability:** 중단된 작업의 이어서 실행 기능 구현
 - [ ] **Error Handling:** 다운로드 실패, 이미지 손상 등 예외 상황에 대한 견고한 처리 로직 구현
 
 ## v0.4.0: [Training] Scalability & Performance
 **"성능 최적화 및 모듈화"**
-- [ ] **Parallel Processing:** 멀티프로세싱으로 전처리 성능 개선
-- [ ] **Configuration:** YAML/JSON 기반의 고도화된 설정 관리 체계 도입
+- [x] **Parallel Processing:** 멀티프로세싱으로 전처리 성능 개선
+- [x] **Configuration:** YAML/JSON 기반의 고도화된 설정 관리 체계 도입
 
 ## v1.0.0: [Deploy] MLOps & Integration
 **"클라우드 통합 및 모델 학습 파이프라인"**

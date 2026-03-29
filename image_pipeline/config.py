@@ -1,7 +1,97 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from dataclasses import dataclass, field
+from typing import Literal
+
 load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent
+
+# ========== 1-1. Source component ==========
+@dataclass(frozen=True)
+class AIHubSourceConfig:
+    api_key: str = field(default_factory=lambda: os.getenv("AIHUB_API_KEY"))
+    project_key: str = "242"
+    manifest_path: Path = BASE_DIR / "manifests" / "download_list.csv"
+    file_key: str = None
+
+# ========== 1-2. Source config ==========
+@dataclass(frozen=True)
+class SourceConfig:
+    source_type: Literal["aihub"] = "aihub"
+    aihub: AIHubSourceConfig = field(default_factory=AIHubSourceConfig)
+    # local: LocalSourceConfig = field(default_factory=LocalSourceConfig)
+    # gcs: GCSSourceConfig = field(default_factory=GCSSourceConfig)
+
+# ========== 2. Transform component ==========
+@dataclass(frozen=True)
+class TransformConfig:
+    target_size: tuple[int, int]=(384, 384)
+    extension: str="webp"
+    quality: int=85
+    interpolation: str="linear"
+
+# ========== 3-1. Loader component ==========
+@dataclass(frozen=True)
+class LocalStorageConfig:
+    dst_dir: Path = BASE_DIR / "data" / "tmp" / "raw"
+
+@dataclass(frozen=True)
+class GCSConfig:
+    credentials_path: str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    bucket_name: str = "lee_modelcamp"
+    upload_src_dir: Path = BASE_DIR / "data" / "tmp" / "rdtupload"
+
+# ========== 3-2. Loader config ==========
+@dataclass(frozen=True)
+class LoaderConfig:
+    storage_type: Literal["local", "gcs"] = "local" 
+    local: LocalStorageConfig = field(default_factory=LocalStorageConfig)
+    gcs: GCSConfig = field(default_factory=GCSConfig)
+
+# ========== 4. Log / Alert / Monitor config ==========
+@dataclass(frozen=True)
+class LoggingConfig:
+    level: str = "INFO" 
+    log_dir: Path = BASE_DIR / "data" / "logs"
+    rotation: str = "1 day" 
+    format: str = "%(asctime)s | %(levelname)-8s | %(worker_id)s | %(message)s"
+    max_bytes: int = 10 * 1024 * 1024
+    backup_count: int = 5
+
+    def __post_init__(self):
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+@dataclass(frozen=True)
+class AlertConfig:
+    pass
+
+@dataclass(frozen=True)
+class MonitorConfig:
+    activate: bool = True
+    metrics_interval: int = 10
+    metrics_dir: Path = BASE_DIR / "data" / "metrics"
+    save_visualize: bool = True
+
+    def __post_init__(self):
+        self.metrics_dir.mkdir(parents=True, exist_ok=True)
+
+# ========== 5. Pipeline config ==========
+@dataclass
+class PipelineConfig:
+    chunk_size: int = 50
+    num_consumers: int = 4
+    transform_conf: TransformConfig = field(default_factory=TransformConfig)
+    loader: LoaderConfig = field(default_factory=LoaderConfig)
+    source: SourceConfig = field(default_factory=SourceConfig)
+    
+# ========== 6. System config ==========
+@dataclass(frozen=True)
+class SystemConfig:
+    download_dir: Path = BASE_DIR / "data" / "tmp" / "raw"
+    archive_dst: Path = BASE_DIR / "data" / "tmp" / "archive"
+    monitor: MonitorConfig = field(default_factory=MonitorConfig)
+    logging: LoggingConfig = field(default_factory=LoggingConfig)
 
 # ======================================================================
 # --- 공통 경로 설정 ---
@@ -47,14 +137,6 @@ ARCHIVE_SRC_DIR = TRANSFORM_DST_DIR
 ARCHIVE_DST_DIR = DATA_DIR / "tmp" / "archive"
 
 # ====================================================================== 
-# --- GCS 버킷 설정 ---
-# ====================================================================== 
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-BUCKET_NAME = "lee_modelcamp"
-UPLOAD_SRC_DIR = DATA_DIR / "tmp" / "rdtupload"
-# UPLOAD_DST_DIR
-
-# ====================================================================== 
 # --- 폴더 생성 함수 ---
 # ====================================================================== 
 def init_directories():
@@ -64,5 +146,3 @@ def init_directories():
     TRANSFORM_DST_DIR.mkdir(parents=True, exist_ok=True)
     ARCHIVE_DST_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-    dict().get

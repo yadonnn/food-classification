@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """
 인메모리 스트리밍 방식
 
@@ -20,10 +21,16 @@ import subprocess
 import time
 import json
 import benchmark_pipeline
+=======
+import sys
+import shutil
+import zipfile
+>>>>>>> 970d5df (feat: apply multiprocessing and configuration & update roadmap)
 import cv2
 import numpy as np
-from datetime import datetime
+from pathlib import Path
 from typing import Iterator
+<<<<<<< HEAD
 # 경로 설정
 # 현재 파일 기준으로 상대 경로 고정
 BENCHMARK_DIR = Path(__file__).parent / "data" / "benchmarks"
@@ -97,176 +104,114 @@ def stream_zip_data(zip_path: Path = BENCHMARK_ZIP_PATH) -> Iterator[tuple[str, 
 		img_names = [n for n in z.namelist() \
 					if n.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.webp'))
 					]
+=======
 
-		for name in img_names:
-			yield name, z.read(name)
+# 프레임워크 임포트
+from benchmark_framework import BenchmarkConfig, ResourceMonitor, BenchmarkRunner
+>>>>>>> 970d5df (feat: apply multiprocessing and configuration & update roadmap)
 
-def resize_image(image_src_bytes: bytes,
-                 target_size: int = BENCHMARK_TARGET_SIZE,
-                 extension: str = BENCHMARK_EXTENSION,
-                 quality: int = BENCHMARK_QUALITY) -> bytes:
-	img_array = np.frombuffer(image_src_bytes, dtype=np.uint8)
-	img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+# 기존 모듈 임포트 경로 설정
+sys.path.append(str(Path(__file__).parent.parent / "image_pipeline"))
+import preprocessor
+import benchmark_pipeline
 
-	if img is None:
-		raise ValueError(f"Image not found at {image_src_path}")
 
-	img = cv2.resize(img, (target_size, target_size), interpolation=cv2.INTER_AREA)
-	is_success, buffer = cv2.imencode(f".{extension}", img, [cv2.IMWRITE_WEBP_QUALITY, quality])
-    
-	if not is_success:
-		raise ValueError(f"Image encoding error")
-	
-	return buffer.tobytes()
+# --- Helper Functions (Stream 전용) ---
+def stream_zip_data(zip_path: Path) -> Iterator[tuple[str, bytes]]:
+    with zipfile.ZipFile(zip_path, 'r') as z:
+        img_names = [n for n in z.namelist()
+                    if n.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.webp'))]
+        for name in img_names:
+            yield name, z.read(name)
 
-# ====================================================
-# --- 압축 함수 ---
-# ====================================================
-def make_archive(data_info: tuple,
-				file_name: str,
-				dst_root: Path = BENCHMARK_TMP_DIR,
-				target_size: int = BENCHMARK_TARGET_SIZE,
-				extension: str = BENCHMARK_EXTENSION) -> Path:
-	"""디렉토리를 zip으로 압축하고, ZipInfo 리스트 반환"""
-	img_name, processed_bytes = data_info
-	zip_dst_path = dst_root / f"{extension}_{str(target_size)}_{file_name}"
-	with zipfile.ZipFile(zip_dst_path, 'w', compression=zipfile.ZIP_DEFLATED) as z:
-		z.writestr(img_name, processed_bytes)
-	
-	return zip_dst_path
+def resize_image_buffer(image_src_bytes: bytes, config: BenchmarkConfig) -> bytes:
+    img_array = np.frombuffer(image_src_bytes, dtype=np.uint8)
+    img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+    if img is None:
+        raise ValueError("Image decoding error")
 
-def move_file(src_path: Path,
-              dst_root: Path = BENCHMARK_ARCHIVE_DST_DIR) -> Path:
-    """src_path를 dst_root로 이동하고 이동한 파일 경로 반환"""
-    dst_path = dst_root / src_path.name
-    src_path.replace(dst_path)
-    return dst_path
-def run_stream_pipeline_v3_with_metrics():
-    file_name = BENCHMARK_ZIP_PATH.name
-    zip_dst_path = BENCHMARK_TMP_DIR / f"{BENCHMARK_EXTENSION}_{str(BENCHMARK_TARGET_SIZE)}_{file_name}"
-    
-    # 시간 누적용 딕셔너리
-    metrics = {
-        "total_read_time_sec": 0.0,
-        "total_transform_time_sec": 0.0,
-        "total_write_time_sec": 0.0,
-        "total_images_processed": 0
-    }
+    img = cv2.resize(img, (config.target_size, config.target_size), interpolation=cv2.INTER_AREA)
+    is_success, buffer = cv2.imencode(f".{config.extension}", img,
+                                     [cv2.IMWRITE_WEBP_QUALITY, config.quality])
+    if not is_success:
+        raise ValueError("Image encoding error")
+    return buffer.tobytes()
 
-    with zipfile.ZipFile(zip_dst_path, 'w', compression=zipfile.ZIP_DEFLATED) as z_out:
-        
-        # 제너레이터를 수동으로 제어하기 위해 iter()로 감쌉니다.
-        stream_iterator = iter(stream_zip_data(BENCHMARK_ZIP_PATH))
-        
-        while True:
-            # ------------------------------------------------
-            # 1. READ 시간 측정 (제너레이터에서 데이터 뽑기)
-            # ------------------------------------------------
-            t0 = time.perf_counter()
-            try:
-                image_name, image_bytes = next(stream_iterator)
-            except StopIteration:
-                break # 더 이상 데이터가 없으면 루프 종료
-            
-            t1 = time.perf_counter()
-            metrics["total_read_time_sec"] += (t1 - t0)
 
-            # ------------------------------------------------
-            # 2. TRANSFORM 시간 측정 (리사이즈 및 인코딩)
-            # ------------------------------------------------
-            resized_bytes = resize_image(image_bytes)
-            
-            t2 = time.perf_counter()
-            metrics["total_transform_time_sec"] += (t2 - t1)
+# --- Pipeline Functions ---
 
-            # ------------------------------------------------
-            # 3. WRITE 시간 측정 (ZIP 파일에 쓰기)
-            # ------------------------------------------------
-            new_image_name = Path(image_name).with_suffix(f'.{BENCHMARK_EXTENSION}').name
-            z_out.writestr(new_image_name, resized_bytes)
-            
-            t3 = time.perf_counter()
-            metrics["total_write_time_sec"] += (t3 - t2)
-            
-            metrics["total_images_processed"] += 1
+def run_disk_pipeline(config: BenchmarkConfig, monitor: ResourceMonitor) -> dict:
+    """v2: 디스크 기반 파이프라인 (압축해제 -> 변환 -> 압축)"""
 
-    # 전체 소요 시간 계산
-    total_pipeline_time = (
-        metrics["total_read_time_sec"] + 
-        metrics["total_transform_time_sec"] + 
-        metrics["total_write_time_sec"]
+    # 0. 초기화
+    shutil.rmtree(config.extract_dst, ignore_errors=True)
+    shutil.rmtree(config.transform_dst, ignore_errors=True)
+    config.extract_dst.mkdir(parents=True, exist_ok=True)
+    config.transform_dst.mkdir(parents=True, exist_ok=True)
+
+    # 1. READ (압축 해제)
+    monitor.mark("read")
+    image_path_list = preprocessor.extract_archive(config.zip_path, config.extract_dst)
+
+    # 2. TRANSFORM (이미지 변환)
+    monitor.mark("transform")
+    benchmark_pipeline.transform_images(
+        file_key="sample",
+        image_path_list=image_path_list,
+        src_root=config.extract_dst,
+        dst_root=config.transform_dst,
+        target_size=config.target_size,
+        extension=config.extension,
+        quality=config.quality
     )
-    metrics["total_pipeline_time_sec"] = total_pipeline_time
 
-    # 결과를 JSON 파일로 저장 (작성해두신 변수 활용)
-    with open(BENCHMARK_OUTPUT_DIR / f"v0.2_{datetime.now().strftime('%Y%m%d_%H%M')}.json", 'w', encoding='utf-8') as f:
-        json.dump(metrics, f, indent=4, ensure_ascii=False)
-        
-    print(f"✅ 벤치마크 완료! 결과가 저장되었습니다.")
+    # 3. WRITE (재압축)
+    monitor.mark("write")
+    preprocessor.make_archive(
+        "sample.zip",
+        config.transform_dst,
+        config.tmp_dir,
+        config.target_size,
+        config.extension
+    )
 
-def run_stream_pipeline_v2_with_metrics():
-	# 디렉토리 초기화
-	shutil.rmtree(BENCHMARK_EXTRACT_DST_DIR)  	# 2. 압축 해제 경로
-	shutil.rmtree(BENCHMARK_TRANSFORM_DST_DIR) # 3. 전처리된 이미지 경로
-	BENCHMARK_EXTRACT_DST_DIR.mkdir(parents=True, exist_ok=True)
-	BENCHMARK_TRANSFORM_DST_DIR.mkdir(parents=True, exist_ok=True)
-	
-	# 시간 누적용 딕셔너리
-	metrics = {
-		"total_read_time_sec": 0.0,
-		"total_transform_time_sec": 0.0,
-		"total_write_time_sec": 0.0,
-		"total_images_processed": 0
-	}
-	
-	# ------------------------------------------------
-	# 1. READ 시간 측정 (제너레이터에서 데이터 뽑기)
-	# ------------------------------------------------
-	t0 = time.perf_counter()
-	image_path_list = preprocessor.extract_archive(BENCHMARK_ZIP_PATH, BENCHMARK_EXTRACT_DST_DIR)
-	t1 = time.perf_counter()
-	metrics["total_read_time_sec"] += (t1 - t0)
+    metrics = monitor.to_summary()
+    metrics["total_images_processed"] = len(image_path_list)
+    return metrics
 
-	# ------------------------------------------------
-	# 2. TRANSFORM 시간 측정 (리사이즈 및 인코딩)
-	# ------------------------------------------------
-	benchmark_pipeline.transform_images(file_key="sample",
-					image_path_list= image_path_list,
-                 	src_root= BENCHMARK_EXTRACT_DST_DIR,
-                 	dst_root= BENCHMARK_TRANSFORM_DST_DIR,
-                 	target_size= BENCHMARK_TARGET_SIZE,
-                 	extension= BENCHMARK_EXTENSION,
-                 	quality= BENCHMARK_QUALITY)
-	t2 = time.perf_counter()
-	metrics["total_transform_time_sec"] += (t2 - t1)
 
-	# ------------------------------------------------
-	# 3. WRITE 시간 측정 (ZIP 파일에 쓰기)
-	# ------------------------------------------------
-	preprocessor.make_archive("sample.zip",
-			  BENCHMARK_TRANSFORM_DST_DIR,
-			  BENCHMARK_TMP_DIR,
-			  BENCHMARK_TARGET_SIZE,
-			  BENCHMARK_EXTENSION)
-	t3 = time.perf_counter()
-	metrics["total_write_time_sec"] += (t3 - t2)
+def run_stream_pipeline(config: BenchmarkConfig, monitor: ResourceMonitor) -> dict:
+    """v3: 메모리 스트리밍 기반 파이프라인 (In-memory)"""
+    image_count = 0
 
-	metrics["total_images_processed"] += 1
+    zip_dst_path = config.tmp_dir / f"stream_{config.extension}_{config.target_size}_{config.zip_path.name}"
 
-    # 전체 소요 시간 계산
-	total_pipeline_time = (
-		metrics["total_read_time_sec"] + 
-		metrics["total_transform_time_sec"] + 
-		metrics["total_write_time_sec"]
-	)
-	metrics["total_pipeline_time_sec"] = total_pipeline_time
+    # 1. READ (zip → 메모리)
+    monitor.mark("read")
+    image_data = list(stream_zip_data(config.zip_path))
 
-	# 결과를 JSON 파일로 저장 (작성해두신 변수 활용)
-	with open(BENCHMARK_OUTPUT_DIR / f"v0.3_{datetime.now().strftime('%Y%m%d_%H%M')}.json", 'w', encoding='utf-8') as f:
-		json.dump(metrics, f, indent=4, ensure_ascii=False)
-		
-	print(f"✅ 벤치마크 완료! 결과가 저장되었습니다.")	
+    # 2. TRANSFORM (메모리 내 이미지 변환)
+    monitor.mark("transform")
+    transformed = []
+    for image_name, image_bytes in image_data:
+        resized_bytes = resize_image_buffer(image_bytes, config)
+        new_name = Path(image_name).with_suffix(f'.{config.extension}').name
+        transformed.append((new_name, resized_bytes))
+
+    # 3. WRITE (메모리 → zip)
+    monitor.mark("write")
+    with zipfile.ZipFile(zip_dst_path, 'w', compression=zipfile.ZIP_DEFLATED) as z_out:
+        for name, data in transformed:
+            z_out.writestr(name, data)
+            image_count += 1
+
+    metrics = monitor.to_summary()
+    metrics["total_images_processed"] = image_count
+    return metrics
+
+
 if __name__ == "__main__":
+<<<<<<< HEAD
 	import gc
 	for i in range(2):
 		gc.disable()
@@ -279,3 +224,24 @@ if __name__ == "__main__":
 	# with zipfile.ZipFile(zip_path, 'r') as z:
 	# 	for info in z.infolist():
 			# print(info.filename)
+=======
+    root_dir = Path(__file__).parent
+    bench_data_dir = root_dir / "data" / "benchmarks"
+
+    config = BenchmarkConfig(
+        zip_path=bench_data_dir / "sample_val_302.zip",
+        extract_dst=bench_data_dir / "extracted",
+        transform_dst=bench_data_dir / "transformed",
+        archive_dst=bench_data_dir / "archive",
+        tmp_dir=bench_data_dir / "tmp",
+        results_dir=root_dir / "data" / "results",
+        rounds=2
+    )
+
+    runner = BenchmarkRunner(config)
+
+    runner.run_strategy("Disk_v2", run_disk_pipeline)
+    runner.run_strategy("Stream_v3", run_stream_pipeline)
+
+    runner.save_results(version_tag="unified_v0.2")
+>>>>>>> 970d5df (feat: apply multiprocessing and configuration & update roadmap)
