@@ -8,7 +8,7 @@ import numpy as np
 import os
 import zipfile
 from pathlib import Path
-from config import TransformConfig
+from configs.config import TransformConfig
 
 class ImageTransformer:
     def __init__(self, t_conf: TransformConfig):

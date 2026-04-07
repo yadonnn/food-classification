@@ -4,8 +4,8 @@ from collections import defaultdict
 from typing import Iterable, Callable
 import multiprocessing as mp
 import time
-from context import PipelineContext
-from pipeline.utils.timer import StageTimer
+from src.context import PipelineContext
+from src.utils.timer import StageTimer
 	
 # --- Producer-Consumer ---
 def extractor(ctx: PipelineContext,

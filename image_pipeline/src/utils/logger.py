@@ -3,9 +3,9 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import time
 from functools import wraps
-from config import LOG_FILE
+from configs.config import SystemConfig
 
-def setup_pipeline_logger(log_file: Path = LOG_FILE):
+def setup_pipeline_logger(log_file: Path):
     """파이프라인 전역에서 사용할 로거를 세팅하고 반환합니다."""
     logger = logging.getLogger("PipelineLogger")
     
@@ -29,7 +29,7 @@ def setup_pipeline_logger(log_file: Path = LOG_FILE):
     # 3. 파일 출력 핸들러 (DEBUG 레벨 이상, Rotating 적용)
     # maxBytes=5MB, 최대 3개 파일 유지 (pipeline.log, pipeline.log.1, ...)
     file_handler = RotatingFileHandler(
-        filename=log_file, 
+        filename=log_file / "pipeline.log", 
         maxBytes=5 * 1024 * 1024, 
         backupCount=3,
         encoding='utf-8'
@@ -44,7 +44,7 @@ def setup_pipeline_logger(log_file: Path = LOG_FILE):
     return logger
 
 # 싱글톤처럼 어디서든 import pipeline_logger 로 가져다 쓸 수 있도록 인스턴스화
-pipeline_logger = setup_pipeline_logger()
+pipeline_logger = setup_pipeline_logger(SystemConfig().logging.log_dir)
 
 def time_logger(func):
     """실행 시간(elapsed time) 파악을 위한 데코레이터"""

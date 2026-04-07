@@ -1,13 +1,13 @@
 import multiprocessing as mp
-from context import PipelineContext
 from functools import partial
-from pipeline.workers import extractor, transformer, loader
-from pipeline.utils.timer import StageTimer
-from pipeline.adapters.storage import LocalZipAdapter, GCSAdapter
-from pipeline.domain.preprocessor import process_chunk
-from pipeline.adapters.stream import extractor_task
+from src.context import PipelineContext
+from src.workers import extractor, transformer, loader
+from src.utils.timer import StageTimer
+from src.pipeline.storage import LocalZipAdapter, GCSAdapter
+from src.pipeline.preprocessor import process_chunk
+from src.pipeline.stream import extractor_task
 
-def run_pipeline(task, pipe_conf, sys_conf):
+def run_pipeline(task, pipe_conf):
 	"""파일별 다운로드 -> 압축 해제 -> 변환 -> 적재 -> 정리 루프"""
 	manager = mp.Manager()
 	metrics_dict = manager.dict()
@@ -18,10 +18,10 @@ def run_pipeline(task, pipe_conf, sys_conf):
 	
 	# Loader
 	if pipe_conf.loader.storage_type == "local":
-		dst_path = sys_conf.archive_dst / f"{task['base_name']}.zip"
+		dst_path = config.system.archive_dst / f"{task['base_name']}.zip"
 		dst_adapter = LocalZipAdapter(dst_path)
 	elif pipe_conf.loader.storage_type == "gcs":
-		dst_adapter = GCSZipAdapter(
+		dst_adapter = GCSAdapter(
 			bucket_name=pipe_conf.loader.gcs.bucket_name,
 			prefix=pipe_conf.loader.gcs.upload_src_dir
 		)
@@ -65,8 +65,7 @@ def run_pipeline(task, pipe_conf, sys_conf):
 		extractor_task,
 		file_keys=[task['image_key'], task['label_key']],
 		base_name=task['base_name'],
-		pipe_conf=pipe_conf,
-		sys_conf=sys_conf
+		src_conf=pipe_conf.source
 	)
 	
 	extract_ctx = PipelineContext(

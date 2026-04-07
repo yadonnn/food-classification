@@ -1,44 +1,34 @@
 import csv
 import argparse
 import json
+import yaml
+import pandas as pd
 from pathlib import Path
-from pipeline.orchestrator import run_pipeline
-from config import PipelineConfig, SystemConfig, SourceConfig, LoaderConfig
-from pipeline.utils.logger import pipeline_logger
-def get_parsed_configs() -> tuple[SystemConfig, PipelineConfig]:
+from src.orchestrator import run_pipeline
+from configs.config import AppConfig
+from src.utils.logger import pipeline_logger
+def parse_args() -> argparse.Namespace:
     """터미널 인자를 파싱하여 알맞은 Config 객체를 생성 및 반환합니다."""
     parser = argparse.ArgumentParser(description="AIHub 데이터 파이프라인")
     
     # parser.add_argument("--source", type=str, default="aihub", 
     #                     choices=["aihub", "url"], 
     #                     help="데이터를 가져올 소스 (기본: aihub)")
-    parser.add_argument("--loader", type=str, default="local", 
+    parser.add_argument("--loader", type=str, default=None, 
                         choices=["local", "gcs"], 
                         help="데이터를 저장할 목적지 (기본: local)")
-    parser.add_argument("--chunk-size", type=int, default=50, 
+    parser.add_argument("--chunk-size", type=int, default=None, 
                         help="청크 크기")
-    parser.add_argument("--consumers", type=int, default=4, 
+    parser.add_argument("--consumers", type=int, default=None, 
                         help="컨슈머 개수")
     parser.add_argument("--file-key", type=str, default=None, 
                         help="특정 파일 키만 처리")
-    args = parser.parse_args()
 
-    # 1. 입력받은 문자열(str)로 하위 Config들을 먼저 생성합니다.
-    # custom_source = SourceConfig(source_type=args.source)
-    from dataclasses import replace
-    custom_source = SourceConfig(source_type="aihub")
-    custom_loader = LoaderConfig(storage_type=args.loader)
-    if args.file_key:
-        custom_source = replace(custom_source, aihub=replace(custom_source.aihub, file_key=args.file_key))
-    # PipelineConfig inject source and loader
-    pipe_conf = PipelineConfig(
-        source=custom_source,
-        loader=custom_loader,
-        chunk_size=args.chunk_size,
-        num_consumers=args.consumers
-    )
-    sys_conf = SystemConfig()
-    return sys_conf, pipe_conf
+    parser.add_argument("--debug", action="store_true", 
+                        help="디버그 모드")
+    parser.add_argument("--config", type=str, default="configs/base.yaml", 
+                        help="기본 설정 파일 경로")
+    return parser.parse_args()
 
 def pair_manifest_data(raw_data: list[tuple]) -> list[dict]:
     """
@@ -79,31 +69,42 @@ def pair_manifest_data(raw_data: list[tuple]) -> list[dict]:
 
     return paired_tasks
 
-def setup_directories(sys_conf: SystemConfig):
-    sys_conf.download_dir.mkdir(parents=True, exist_ok=True)
-    sys_conf.archive_dst.mkdir(parents=True, exist_ok=True)
+def setup_directories(config):
+    config.pipeline.source.raw_dir.mkdir(parents=True, exist_ok=True)
+    config.pipeline.source.processed_dir.mkdir(parents=True, exist_ok=True)
+    config.system.monitor.metrics_dir.mkdir(parents=True, exist_ok=True)
+    config.system.logging.log_dir.mkdir(parents=True, exist_ok=True)
     
 def main():
-    sys_conf, pipe_conf = get_parsed_configs()
-    setup_directories(sys_conf)
+    # 1. parse args
+    args = parse_args()
 
-    with open(pipe_conf.source.aihub.manifest_path, "r", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        manifests = [(row['file_name'], row['size'], row['file_key'])
-            for row in reader]
-    if pipe_conf.source.aihub.file_key:
-        paired_tasks = [{
-            "base_name": "음식302_Val",
-            "image_key": pipe_conf.source.aihub.file_key,
-            "label_key": "49596"
-        }]
-    else:
-        paired_tasks = pair_manifest_data(manifests)
+    # 2. load yaml(debug or base)
+    yaml_path = "configs/debug.yaml" if args.debug else args.config
+    config = AppConfig.load_yaml(yaml_path)
 
+    # 3. override
+    if args.loader is not None:
+        config.pipeline.loader.storage_type = args.loader
+    if args.chunk_size is not None:
+        config.pipeline.chunk_size = args.chunk_size
+    if args.consumers is not None:
+        config.pipeline.num_consumers = args.consumers
+    if args.file_key is not None:
+        config.pipeline.source.aihub.file_key = args.file_key
+
+    # print(config)
+    setup_directories(config)
+    manifest_path = str(config.pipeline.source.aihub.manifest_path)
+    with open(manifest_path, 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        next(reader)
+        raw_data = [(name, size, key) for name, size, key in reader]
+    paired_tasks = pair_manifest_data(raw_data)
     failed_list = []
     for task in paired_tasks:
         try:
-            metrics = run_pipeline(task, pipe_conf, sys_conf)
+            metrics = run_pipeline(task, config.pipeline)
         except Exception as e:
             pipeline_logger.error(f"[{task['base_name']}] pipeline error: {e}")
             failed_list.append(task)
@@ -116,18 +117,18 @@ def main():
                 p.terminate()
                 p.join()
 
-            with open(sys_conf.monitor.metrics_dir / f"{task['base_name']}.json", "w") as f:
+            with open(config.system.monitor.metrics_dir / f"{task['base_name']}.json", "w") as f:
                 json.dump(metrics, f, indent=4, ensure_ascii=False)
                 print(f"[System] {task['base_name']} metrics saved...")
     print("pipeline end...")
     
-    # retry
-    retry = False
-    if retry == True:
-        for failed_task in failed_list:
-            try:
-                run_pipeline(failed_task, pipe_conf, sys_conf)
-            except Exception as e:
-                pipeline_logger.error(f"[{failed_task['base_name']}] pipeline error: {e}")
+    # # retry
+    # retry = False
+    # if retry == True:
+    #     for failed_task in failed_list:
+    #         try:
+    #             run_pipeline(failed_task, pipe_conf, sys_conf)
+    #         except Exception as e:
+    #             pipeline_logger.error(f"[{failed_task['base_name']}] pipeline error: {e}")
 if __name__ == "__main__":
     main()

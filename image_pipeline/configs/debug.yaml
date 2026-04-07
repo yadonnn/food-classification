@@ -1,0 +1,23 @@
+pipeline:
+  num_consumers: 1  
+  chunk_size: 5     
+  
+  source:
+    source_type: "local"
+    local:
+      src_zip_path: "./data/debug/sample.zip"
+      
+  transform:
+    target_size: [384, 384]
+    extension: "webp"
+    quality: 85
+    interpolation: "linear"
+    
+  loader:
+    storage_type: "local"
+    local:
+      dst_dir: "./data/debug/output"
+
+system:
+  logging:
+    level: "DEBUG"

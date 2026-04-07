@@ -14,7 +14,7 @@ from collections import defaultdict, Counter
 from dotenv import load_dotenv
 sys.path.append(str(Path(__file__).parent.parent / "image_pipeline"))
 load_dotenv(str(Path(__file__).parent.parent / "image_pipeline" / ".env"))
-from pipeline.adapters.downloader import download_file
+
 def download(file_keys, download_dir):
     subprocess.run(["aihubshell",
                     "-mode", "d", 
@@ -193,4 +193,5 @@ def main():
     #     writer.writerow(["total_n", "train_n", "val_n", "train_classes", "val_classes"])
     #     writer.writerow([label_info["total_n"], label_info["train_n"], label_info["val_n"], label_info["train_classes"], label_info["val_classes"]])
 if __name__ == "__main__":
-    main()
+    # main()
+    download("49596", Path("tests/tmp/labels"))
