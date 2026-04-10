@@ -114,21 +114,21 @@ class ImageTransformer:
         return padded_img, new_boxes
 
     def encode(self, img: np.ndarray) -> bytes:
-        is_success, buffer = cv2.imencode(self.extension, img, self.encode_params)
+        is_success, buffer = cv2.imencode(f".{self.extension}", img, self.encode_params)
         if not is_success:
             raise ValueError("Image encoding error")
         return buffer.tobytes()
-    def add_label_info(self, name: str, label: list[dict]) -> list[dict]:
-        korean_class_name = Path(name).parent
-        for box in label:
-            new_label ['korean_name'] = korean_class_name
-        return label
+    # def add_label_info(self, name: str, label: list[dict]) -> list[dict]:
+    #     korean_class_name = Path(name).parent
+    #     for box in label:
+    #         box['korean_name'] = korean_class_name
+    #     return label
     def process_full_cycle(self, name: str, image_src_bytes: bytes, label: list[dict]) -> tuple[str, bytes, list[dict]]:
         img = self.decode(image_src_bytes)
         if label:
             processed_img, processed_label = \
                 self.transform_letterbox_image_and_boxes(img, label)
-            processed_label = self.add_label_info(name, processed_label)
+            # processed_label = self.add_label_info(name, processed_label)
         else:
             processed_img = self.transform_only_resize(img)
             processed_label = label

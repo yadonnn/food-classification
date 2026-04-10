@@ -6,7 +6,9 @@ import pandas as pd
 from pathlib import Path
 from src.orchestrator import run_pipeline
 from configs.config import AppConfig
-from src.utils.logger import pipeline_logger
+from src.utils.logger import setup_pipeline_logger
+from src.utils.monitor import ResourceMonitor
+
 def parse_args() -> argparse.Namespace:
     """터미널 인자를 파싱하여 알맞은 Config 객체를 생성 및 반환합니다."""
     parser = argparse.ArgumentParser(description="AIHub 데이터 파이프라인")
@@ -74,14 +76,19 @@ def setup_directories(config):
     config.pipeline.source.processed_dir.mkdir(parents=True, exist_ok=True)
     config.system.monitor.metrics_dir.mkdir(parents=True, exist_ok=True)
     config.system.logging.log_dir.mkdir(parents=True, exist_ok=True)
+    if config.pipeline.loader.storage_type == "local":
+        config.pipeline.loader.local.dst_dir.mkdir(parents=True, exist_ok=True)
     
 def main():
+    monitor = ResourceMonitor()
     # 1. parse args
     args = parse_args()
 
     # 2. load yaml(debug or base)
     yaml_path = "configs/debug.yaml" if args.debug else args.config
     config = AppConfig.load_yaml(yaml_path)
+    setup_directories(config)
+    pipeline_logger = setup_pipeline_logger(config.system.logging.log_dir)
 
     # 3. override
     if args.loader is not None:
@@ -92,19 +99,40 @@ def main():
         config.pipeline.num_consumers = args.consumers
     if args.file_key is not None:
         config.pipeline.source.aihub.file_key = args.file_key
+        
+    # Source type별 Task 설정
+    if config.pipeline.source.source_type == "aihub":
+        with open(config.pipeline.source.aihub.manifest_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            next(reader)
+            raw_data = [(name, size, key) for name, size, key in reader]
+        paired_tasks = pair_manifest_data(raw_data)
+        
+        # 지정된 file_key(들)이 있다면 해당 키를 가진 쌍만 필터링
+        target_keys = config.pipeline.source.aihub.file_key
+        if target_keys:
+            if isinstance(target_keys, str):
+                target_keys = [k.strip() for k in target_keys.split(",")]
+            
+            set_keys = set(target_keys)
+            paired_tasks = [
+                task for task in paired_tasks
+                if task["image_key"] in set_keys or task["label_key"] in set_keys
+            ]
+            print(f"[System] 특정 file_key 값({list(set_keys)})에 해당하는 {len(paired_tasks)}개의 데이터셋만 처리합니다.")
+    elif config.pipeline.source.source_type == "local":
+        src_zip = config.pipeline.source.local.src_zip_path
+        paired_tasks = [{
+            "base_name": Path(src_zip).stem,
+            "image_key": None,
+            "label_key": None,
+        }]
 
-    # print(config)
-    setup_directories(config)
-    manifest_path = str(config.pipeline.source.aihub.manifest_path)
-    with open(manifest_path, 'r', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        next(reader)
-        raw_data = [(name, size, key) for name, size, key in reader]
-    paired_tasks = pair_manifest_data(raw_data)
     failed_list = []
     for task in paired_tasks:
+        metrics = None
         try:
-            metrics = run_pipeline(task, config.pipeline)
+            metrics = run_pipeline(task, config.pipeline, monitor)
         except Exception as e:
             pipeline_logger.error(f"[{task['base_name']}] pipeline error: {e}")
             failed_list.append(task)
@@ -112,14 +140,17 @@ def main():
         finally:
             # save metrics
             import multiprocessing
+
+            monitor.stop()
             for p in multiprocessing.active_children():
                 print(f"[System] {p.name} process end...")
                 p.terminate()
                 p.join()
 
-            with open(config.system.monitor.metrics_dir / f"{task['base_name']}.json", "w") as f:
-                json.dump(metrics, f, indent=4, ensure_ascii=False)
-                print(f"[System] {task['base_name']} metrics saved...")
+            if metrics is not None:
+                with open(config.system.monitor.metrics_dir / f"{task['base_name']}.json", "w") as f:
+                    json.dump(metrics, f, indent=4, ensure_ascii=False)
+                    print(f"[System] {task['base_name']} metrics saved...")
     print("pipeline end...")
     
     # # retry

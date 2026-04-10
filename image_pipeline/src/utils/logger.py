@@ -43,8 +43,6 @@ def setup_pipeline_logger(log_file: Path):
 
     return logger
 
-# 싱글톤처럼 어디서든 import pipeline_logger 로 가져다 쓸 수 있도록 인스턴스화
-pipeline_logger = setup_pipeline_logger(SystemConfig().logging.log_dir)
 
 def time_logger(func):
     """실행 시간(elapsed time) 파악을 위한 데코레이터"""

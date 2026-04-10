@@ -1,0 +1,52 @@
+# 1. Pipeline 관련 설정
+pipeline:
+  chunk_size: 50
+  num_consumers: 4  # 서버 사양에 맞춰 조정
+  
+  source:
+    # 'aihub' or 'local'
+    source_type: "local"
+    
+    # api_key는 보안상 .env에서 읽도록 비워두거나 환경변수 사용
+    aihub:
+      project_key: "242"
+      manifest_path: "./manifests/download_list.csv"
+
+    # for local test
+    local:
+      src_zip_path: "/home/lee/my-project/food-classification/image_pipeline/data/tmp/raw/052.건강관리를_위한_음식_이미지_데이터/01.데이터/1.Training/원천데이터/음식001_Tra.zip"
+      label_zip_path: "/home/lee/my-project/food-classification/image_pipeline/data/tmp/raw/052.건강관리를_위한_음식_이미지_데이터/01.데이터/1.Training/라벨링데이터/음식001_Tra_json.zip"
+
+  transform:
+    target_size: [384, 384]
+    # 'webp', 'jpeg', 'png'
+    extension: "webp"
+    # 0~100
+    quality: 85
+    # 'linear', 'bilinear', 'bicubic', 'lanczos'
+    interpolation: "linear"
+  
+  loader:
+    # "gcs" or "local"
+    storage_type: "gcs"
+    
+    # for gcs
+    gcs:
+      bucket_name: "lee_modelcamp"
+      upload_src_dir: "./data/tmp/rdtupload"
+    
+    # for local test
+    # local:
+    #   dst_dir: "./data/tmp/raw"
+# 2. System 관련 설정
+system:
+  download_dir: "./data/tmp/raw"
+  archive_dst: "./data/tmp/archive"
+  
+  logging:
+    level: "INFO"
+    rotation: "1 day"
+  
+  monitor:
+    activate: true
+    metrics_interval: 10

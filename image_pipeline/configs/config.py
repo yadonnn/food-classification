@@ -24,14 +24,14 @@ from pydantic import BaseModel, Field, SecretStr, model_validator
 from typing import Literal, Optional
 
 load_dotenv()
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ========== 1-1. Source component ==========
 class AIHubSourceConfig(BaseModel):
     api_key: SecretStr = Field(default_factory=lambda: os.getenv("AIHUB_API_KEY"))
     project_key: str = "242"
     manifest_path: Path = BASE_DIR / "manifests" / "download_list.csv"
-    # file_key: str
+    file_key: str|list = None
 
 class LocalSourceConfig(BaseModel):
     src_zip_path: Path = BASE_DIR / "data" / "debug" / "sample.zip"

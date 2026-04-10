@@ -42,13 +42,12 @@ def get_valid_pairs(image_zip_obj, label_zip_obj) -> tuple[list[tuple[str, str]]
 		pair_keys = img_set & lbl_set
 		only_img = img_set - lbl_set
 		only_lbl = lbl_set - img_set
-		
 		# result
 		result = [(img_map[k], lbl_map[k]) for k in pair_keys]
 
 		isolation_report = {
-			"missing_label": [lbl_map[k] for k in only_lbl],
-			"missing_image": [img_map[k] for k in only_img],
+			"missing_label": [img_map[k] for k in only_img],
+			"missing_image": [lbl_map[k] for k in only_lbl],
 			"empty_image": list(empty_imgs),
 			"empty_label": list(empty_lbls),
 		}
@@ -78,8 +77,7 @@ def data_generator(tasks, img_zip_obj, lbl_zip_obj, chunk_size):
 	for img_path, label in tasks:
 		img_bytes = img_zip_obj.read(img_path)
 		objects = parse_aihub_label(lbl_zip_obj.read(label))
-
-		chunk.append((img_bytes, objects))
+		chunk.append((img_path, img_bytes, objects))
 		if len(chunk) >= chunk_size:
 			yield chunk
 			chunk = []
@@ -87,7 +85,7 @@ def data_generator(tasks, img_zip_obj, lbl_zip_obj, chunk_size):
 		yield chunk
 
 # ====== combine image and label ======
-def extractor_task(file_keys, base_name, src_conf) -> Iterator[tuple[str, bytes]]:
+def extractor_task(file_keys, base_name, src_conf, chunk_size) -> Iterator[tuple[str, bytes]]:
 	if src_conf.source_type == "aihub":
 		image_zip_path, label_zip_path = download_file(
 			file_keys=file_keys,
@@ -104,27 +102,34 @@ def extractor_task(file_keys, base_name, src_conf) -> Iterator[tuple[str, bytes]
 		is_temp_file = False
 
 
-	label_dict = {}
-	tasks = []
-	if label_zip_path:
-		with zipfile.ZipFile(label_zip_path, "r") as lbl_z:
-			for lbl_name in lbl_z.namelist():
-				if lbl_name.endswith(".json"):
-					label_data = parse_aihub_label(lbl_z.read(lbl_name))
-					code_name = label_data[0]["code_name"]
-					label_dict[code_name] = label_data
-		
-	with zipfile.ZipFile(image_zip_path, "r") as img_z:
-		for img_name in img_z.namelist():
-			if img_name.endswith((".jpg", ".png", ".webp")):
-				if img_name in label_dict:
-					tasks.append((img_name, label_dict[code_name]))
+	try:
+		print(f"[Stream] image_zip_path: {image_zip_path}")
+		print(f"[Stream] label_zip_path: {label_zip_path}")
+		with zipfile.ZipFile(image_zip_path, "r") as img_z:
+			if label_zip_path:
+				with zipfile.ZipFile(label_zip_path, "r") as lbl_z:
+					# 이미 만들어둔 get_valid_pairs를 사용하여 OOM을 방지하고 빠르게 매칭
+					tasks, isolation_report = get_valid_pairs(img_z, lbl_z)
+					yield from data_generator(tasks, img_z, lbl_z, chunk_size)
+			else:
+				# 라벨 없이 이미지만 처리
+				chunk = []
+				for info in img_z.infolist():
+					if info.is_dir() or not info.filename.lower().endswith((".jpg", ".png", ".webp")):
+						continue
+					if info.file_size == 0:
+						continue
 					
-		try:
-			yield from data_generator(tasks, img_z, lbl_z, pipe_conf.chunk_size)
-		finally:
-			if is_temp_file:
-				if image_zip_path and image_zip_path.exists():
-					image_zip_path.unlink()
-				if label_zip_path and label_zip_path.exists():
-					label_zip_path.unlink()
+					img_bytes = img_z.read(info.filename)
+					chunk.append((info.filename, img_bytes, []))
+					if len(chunk) >= chunk_size:
+						yield chunk
+						chunk = []
+				if chunk:
+					yield chunk
+	finally:
+		if is_temp_file:
+			if image_zip_path and image_zip_path.exists():
+				image_zip_path.unlink()
+			if label_zip_path and label_zip_path.exists():
+				label_zip_path.unlink()

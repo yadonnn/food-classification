@@ -6,8 +6,9 @@ from src.utils.timer import StageTimer
 from src.pipeline.storage import LocalZipAdapter, GCSAdapter
 from src.pipeline.preprocessor import process_chunk
 from src.pipeline.stream import extractor_task
+from src.utils.monitor import ResourceMonitor
 
-def run_pipeline(task, pipe_conf):
+def run_pipeline(task, pipe_conf, monitor: ResourceMonitor):
 	"""파일별 다운로드 -> 압축 해제 -> 변환 -> 적재 -> 정리 루프"""
 	manager = mp.Manager()
 	metrics_dict = manager.dict()
@@ -15,10 +16,11 @@ def run_pipeline(task, pipe_conf):
 	raw_q = mp.Queue(maxsize=pipe_conf.num_consumers * 2)
 	processed_q = mp.Queue(maxsize=pipe_conf.num_consumers * 2)
 
+	monitor.start()
 	
 	# Loader
 	if pipe_conf.loader.storage_type == "local":
-		dst_path = config.system.archive_dst / f"{task['base_name']}.zip"
+		dst_path = pipe_conf.loader.local.dst_dir / f"{task['base_name']}.zip"
 		dst_adapter = LocalZipAdapter(dst_path)
 	elif pipe_conf.loader.storage_type == "gcs":
 		dst_adapter = GCSAdapter(
@@ -40,10 +42,10 @@ def run_pipeline(task, pipe_conf):
 		args=(load_ctx, dst_adapter, pipe_conf.num_consumers)
 	)
 	load_proc.start()
-
+	monitor.register_process(f"Writer: {pipe_conf.loader.storage_type}", load_proc.pid)
 	# Transformer
 	transform_task = partial(process_chunk,
-		t_conf = pipe_conf.transform_conf)
+		t_conf = pipe_conf.transform)
 
 	transform_procs = []
 	for i in range(pipe_conf.num_consumers):
@@ -59,13 +61,15 @@ def run_pipeline(task, pipe_conf):
 		)
 		transform_proc.start()
 		transform_procs.append(transform_proc)
+		monitor.register_process(f"Transformer: {i}", transform_proc.pid)
 
 	# Extractor
 	extract_task = partial(
 		extractor_task,
 		file_keys=[task['image_key'], task['label_key']],
 		base_name=task['base_name'],
-		src_conf=pipe_conf.source
+		src_conf=pipe_conf.source,
+		chunk_size=pipe_conf.chunk_size
 	)
 	
 	extract_ctx = PipelineContext(
@@ -80,6 +84,9 @@ def run_pipeline(task, pipe_conf):
 		args=(extract_ctx, extract_task, pipe_conf.num_consumers)
 	)
 	extract_proc.start()
+	monitor.register_process(f"Extractor: {pipe_conf.source.source_type}", extract_proc.pid)
+	
+	monitor.mark("Running")
 	
 	# Join
 	extract_proc.join()
